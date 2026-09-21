@@ -1,30 +1,14 @@
-# Mahindra XUV 7XO — Transformer-Style Cinematic VFX
+# Mahindra XUV 7XO — Transformer VFX (Real Motion Video)
 
-Cinematic short film of the **Mahindra XUV 7XO Galaxy Grey** transforming into a towering photorealistic robot and reforming — driven by a Mahindra smart key used as a remote.
+Photoreal cinematic short with **actual frame-to-frame motion** (image-to-video), not still crossfades.
 
-## Sequence
+## Final video
 
-1. **Key remote** — Extreme close-up of the Mahindra key fob held like a remote over an open field
-2. **Model traverse** — Holographic cycle through Mahindra models
-3. **7XO lock-on** — Galaxy Grey XUV 7XO materializes; key button is tapped
-4. **Hover** — Static camera; SUV lifts slightly above the grass
-5. **Detonation unfold** — Panels explode outward into hydraulics, gears, and glowing armor
-6. **Robot form** — Photorealistic towering mech holds in the field
-7. **Reform** — Mechanical reverse transform back to the original parked SUV
-
-## Output
-
-| File | Description |
-|------|-------------|
-| `output/mahindra_xuv7xo_transformer_vfx.mp4` | Final 1280×720 @ 24fps cinematic cut with mechanical SFX |
-| `output/storyboard_strip.png` | Keyframe storyboard strip |
-| `keyframes/` | Generated cinematic keyframes |
-| `reference-xuv7xo.jpg` | Source Galaxy Grey reference still |
+`output/xuv7xo_PHOTOREAL_motion_vfx.mp4` — ~35s, 1280×720, H.264 + mechanical SFX
 
 ## Rebuild
 
 ```bash
-python3 xuv7xo-transformer-vfx/scripts/compose_vfx.py
+pip install -r requirements.txt gradio_client
+python3 scripts/generate_i2v_motion.py
 ```
-
-Requires: Python 3, Pillow, NumPy, FFmpeg.

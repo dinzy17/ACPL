@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XUV 7XO Transformer VFX — Live</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #05070a; }
+    #c { display: block; width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; left: 24px; bottom: 22px; z-index: 5;
+      font: 500 12px/1.4 "DM Sans", system-ui, sans-serif;
+      letter-spacing: 0.18em; text-transform: uppercase; color: rgba(220,228,236,.72);
+      pointer-events: none; text-shadow: 0 1px 8px rgba(0,0,0,.6);
+    }
+    #hud b { color: #e07a3a; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="hud">Mahindra <b>XUV 7XO</b> · Galaxy Grey · Live transform</div>
+  <script src="./lib/three.min.js"></script>
+  <script>
+(() => {
+  const DURATION = 26; // seconds of continuous animation
+  const W = 1280, H = 720;
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(W, H, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x6a7a8c, 0.012);
+
+  // Static camera (as requested)
+  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 200);
+  camera.position.set(0, 2.35, 11.5);
+  camera.lookAt(0, 1.8, 0);
+
+  // --- Environment: open field ---
+  const hemi = new THREE.HemisphereLight(0xffe2c2, 0x3a4a2a, 0.85);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffd0a0, 2.1);
+  sun.position.set(-8, 10, 4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 40;
+  sun.shadow.camera.left = -14;
+  sun.shadow.camera.right = 14;
+  sun.shadow.camera.top = 14;
+  sun.shadow.camera.bottom = -14;
+  scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x88aacc, 0.55);
+  rim.position.set(6, 4, -8);
+  scene.add(rim);
+  const fill = new THREE.PointLight(0xff8844, 40, 30);
+  fill.position.set(2, 3, 6);
+  scene.add(fill);
+
+  // Sky gradient via large dome
+  const skyGeo = new THREE.SphereGeometry(80, 32, 16);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    uniforms: {
+      top: { value: new THREE.Color(0x1a2740) },
+      mid: { value: new THREE.Color(0xc47a4a) },
+      bot: { value: new THREE.Color(0xe8c090) },
+    },
+    vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+    fragmentShader: `
+      uniform vec3 top, mid, bot; varying vec3 vP;
+      void main(){
+        float h = normalize(vP).y * 0.5 + 0.5;
+        vec3 c = mix(bot, mid, smoothstep(0.0, 0.45, h));
+        c = mix(c, top, smoothstep(0.4, 1.0, h));
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(45, 64),
+    new THREE.MeshStandardMaterial({ color: 0x4a6a38, roughness: 0.95, metalness: 0.05 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Grass tufts (instanced)
+  {
+    const blade = new THREE.ConeGeometry(0.03, 0.35, 3);
+    const gmat = new THREE.MeshStandardMaterial({ color: 0x5d8a42, roughness: 0.9 });
+    const mesh = new THREE.InstancedMesh(blade, gmat, 900);
+    const m = new THREE.Matrix4();
+    const p = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    const s = new THREE.Vector3();
+    for (let i = 0; i < 900; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 1.8 + Math.random() * 18;
+      p.set(Math.cos(a) * r, 0.15, Math.sin(a) * r);
+      q.setFromEuler(new THREE.Euler(0, Math.random() * 6, (Math.random() - 0.5) * 0.3));
+      s.set(1, 0.6 + Math.random() * 1.4, 1);
+      m.compose(p, q, s);
+      mesh.setMatrixAt(i, m);
+    }
+    scene.add(mesh);
+  }
+
+  const loader = new THREE.TextureLoader();
+  const carTex = loader.load('./textures/car.jpg');
+  carTex.colorSpace = THREE.SRGBColorSpace;
+  const keyTex = loader.load('./textures/key.png');
+  keyTex.colorSpace = THREE.SRGBColorSpace;
+  const robotTex = loader.load('./textures/robot.png');
+  robotTex.colorSpace = THREE.SRGBColorSpace;
+
+  const galaxy = 0x3a3e44;
+  const metalMat = new THREE.MeshStandardMaterial({
+    color: galaxy, metalness: 0.92, roughness: 0.28, envMapIntensity: 1.2,
+  });
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0xc0c6ce, metalness: 1.0, roughness: 0.15,
+  });
+  const glowMat = new THREE.MeshStandardMaterial({
+    color: 0x3ad0ff, emissive: 0x1ab0ff, emissiveIntensity: 2.2, metalness: 0.4, roughness: 0.3,
+  });
+  const emberMat = new THREE.MeshStandardMaterial({
+    color: 0xff6a20, emissive: 0xff4500, emissiveIntensity: 2.5, metalness: 0.3, roughness: 0.35,
+  });
+
+  // --- Key fob (foreground card) ---
+  const keyGroup = new THREE.Group();
+  const keyCard = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.2, 1.24),
+    new THREE.MeshBasicMaterial({ map: keyTex, transparent: true })
+  );
+  keyGroup.add(keyCard);
+  keyGroup.position.set(-3.6, 2.4, 7.2);
+  keyGroup.rotation.y = 0.35;
+  scene.add(keyGroup);
+
+  // Hologram cars scrolling
+  const holoGroup = new THREE.Group();
+  scene.add(holoGroup);
+  const holoCars = [];
+  const holoNames = ['SCORPIO-N', 'XUV700', 'THAR', 'BOLERO', 'XUV 7XO'];
+  for (let i = 0; i < 5; i++) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 0.85, 1.15),
+      new THREE.MeshBasicMaterial({ color: 0x44ddff, transparent: true, opacity: 0.22, wireframe: true })
+    );
+    const fillB = new THREE.Mesh(
+      new THREE.BoxGeometry(2.35, 0.8, 1.1),
+      new THREE.MeshBasicMaterial({ color: 0x2288aa, transparent: true, opacity: 0.12 })
+    );
+    g.add(body, fillB);
+    g.position.set((i - 2) * 3.2, 2.2, 0);
+    holoGroup.add(g);
+    holoCars.push(g);
+  }
+
+  // --- Physical SUV ---
+  const car = new THREE.Group();
+  function makeSUV(mat) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.15, 1.9), mat.clone());
+    body.position.y = 0.95;
+    body.castShadow = true;
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.85, 1.75), mat.clone());
+    cabin.position.set(-0.15, 1.85, 0);
+    cabin.castShadow = true;
+    // textured hood plane for brand likeness
+    const face = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.9, 1.15),
+      new THREE.MeshStandardMaterial({ map: carTex, metalness: 0.55, roughness: 0.35 })
+    );
+    face.position.set(2.12, 1.05, 0);
+    face.rotation.y = Math.PI / 2;
+    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.28, 24);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const wheels = [];
+    [[1.35, 0.42, 0.95], [1.35, 0.42, -0.95], [-1.35, 0.42, 0.95], [-1.35, 0.42, -0.95]].forEach((p) => {
+      const w = new THREE.Mesh(wheelGeo, chromeMat.clone());
+      w.position.set(...p);
+      w.castShadow = true;
+      g.add(w);
+      wheels.push(w);
+    });
+    // C-shaped DRL approx
+    const drlL = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 8, 24, Math.PI * 1.2), glowMat.clone());
+    drlL.position.set(2.05, 1.05, 0.72);
+    drlL.rotation.y = Math.PI / 2;
+    const drlR = drlL.clone();
+    drlR.position.z = -0.72;
+    g.add(body, cabin, face, drlL, drlR);
+    g.userData.wheels = wheels;
+    g.userData.body = body;
+    return g;
+  }
+  const suv = makeSUV(metalMat);
+  car.add(suv);
+  car.visible = false;
+  scene.add(car);
+
+  // --- Robot ---
+  const robot = new THREE.Group();
+  function limb(w, h, d, mat) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.castShadow = true;
+    return m;
+  }
+  const torso = limb(1.6, 2.0, 1.0, metalMat.clone());
+  torso.position.y = 3.4;
+  const chestFace = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.35, 1.1),
+    new THREE.MeshStandardMaterial({ map: carTex, metalness: 0.6, roughness: 0.35 })
+  );
+  chestFace.position.set(0, 3.55, 0.52);
+  const head = limb(0.7, 0.7, 0.7, metalMat.clone());
+  head.position.y = 4.85;
+  const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.05), glowMat.clone());
+  eyeL.position.set(-0.16, 4.9, 0.38);
+  const eyeR = eyeL.clone();
+  eyeR.position.x = 0.16;
+  const pelvis = limb(1.3, 0.55, 0.85, metalMat.clone());
+  pelvis.position.y = 2.2;
+  const armL = limb(0.45, 1.7, 0.45, metalMat.clone());
+  armL.position.set(-1.2, 3.3, 0);
+  const armR = armL.clone();
+  armR.position.x = 1.2;
+  const legL = limb(0.55, 2.0, 0.55, metalMat.clone());
+  legL.position.set(-0.4, 1.0, 0);
+  const legR = legL.clone();
+  legR.position.x = 0.4;
+  // wheel motifs on shoulders
+  const shL = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 10, 24), chromeMat.clone());
+  shL.position.set(-1.15, 4.15, 0);
+  shL.rotation.y = Math.PI / 2;
+  const shR = shL.clone();
+  shR.position.x = 1.15;
+  // glowing armor seams
+  const seam = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.6, 0.06), emberMat.clone());
+  seam.position.set(0.55, 3.4, 0.52);
+  const seam2 = seam.clone();
+  seam2.position.x = -0.55;
+  robot.add(torso, chestFace, head, eyeL, eyeR, pelvis, armL, armR, legL, legR, shL, shR, seam, seam2);
+  robot.visible = false;
+  robot.position.y = -0.2;
+  scene.add(robot);
+
+  // Debris / panels for explosion
+  const debris = [];
+  const debrisGroup = new THREE.Group();
+  scene.add(debrisGroup);
+  for (let i = 0; i < 48; i++) {
+    const size = 0.15 + Math.random() * 0.55;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(size, size * 0.15, size * 0.7),
+      Math.random() > 0.7 ? glowMat.clone() : metalMat.clone()
+    );
+    mesh.visible = false;
+    debrisGroup.add(mesh);
+    debris.push({
+      mesh,
+      vel: new THREE.Vector3(),
+      spin: new THREE.Vector3(Math.random(), Math.random(), Math.random()),
+      home: new THREE.Vector3(),
+    });
+  }
+
+  // Sparks particles
+  const sparkCount = 400;
+  const sparkGeo = new THREE.BufferGeometry();
+  const sparkPos = new Float32Array(sparkCount * 3);
+  const sparkVel = [];
+  for (let i = 0; i < sparkCount; i++) {
+    sparkPos[i * 3] = 0; sparkPos[i * 3 + 1] = -10; sparkPos[i * 3 + 2] = 0;
+    sparkVel.push(new THREE.Vector3());
+  }
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+  const sparks = new THREE.Points(
+    sparkGeo,
+    new THREE.PointsMaterial({ color: 0xffaa44, size: 0.08, transparent: true, opacity: 0.9 })
+  );
+  scene.add(sparks);
+
+  // Energy ring under car
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(1.2, 1.55, 48),
+    new THREE.MeshBasicMaterial({ color: 0x33ccff, transparent: true, opacity: 0, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.05;
+  scene.add(ring);
+
+  // Dust
+  const dustCount = 200;
+  const dustGeo = new THREE.BufferGeometry();
+  const dustPos = new Float32Array(dustCount * 3);
+  for (let i = 0; i < dustCount; i++) {
+    dustPos[i * 3] = (Math.random() - 0.5) * 8;
+    dustPos[i * 3 + 1] = Math.random() * 0.4;
+    dustPos[i * 3 + 2] = (Math.random() - 0.5) * 8;
+  }
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+  const dust = new THREE.Points(
+    dustGeo,
+    new THREE.PointsMaterial({ color: 0xc2b280, size: 0.06, transparent: true, opacity: 0.0 })
+  );
+  scene.add(dust);
+
+  function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+  function clamp01(t) { return Math.max(0, Math.min(1, t)); }
+  function smoothstep(e0, e1, x) {
+    const t = clamp01((x - e0) / (e1 - e0));
+    return t * t * (3 - 2 * t);
+  }
+
+  function burstSparks(origin, strength) {
+    for (let i = 0; i < sparkCount; i++) {
+      sparkPos[i * 3] = origin.x + (Math.random() - 0.5) * 0.5;
+      sparkPos[i * 3 + 1] = origin.y + (Math.random() - 0.5) * 0.5;
+      sparkPos[i * 3 + 2] = origin.z + (Math.random() - 0.5) * 0.5;
+      sparkVel[i].set(
+        (Math.random() - 0.5) * strength,
+        Math.random() * strength * 0.9,
+        (Math.random() - 0.5) * strength
+      );
+    }
+    sparks.geometry.attributes.position.needsUpdate = true;
+  }
+
+  function spawnDebris() {
+    debris.forEach((d, i) => {
+      d.mesh.visible = true;
+      d.mesh.position.set((Math.random() - 0.5) * 2, 1 + Math.random(), (Math.random() - 0.5) * 1.5);
+      d.home.copy(d.mesh.position);
+      const ang = (i / debris.length) * Math.PI * 2;
+      d.vel.set(Math.cos(ang) * (2 + Math.random() * 4), 1 + Math.random() * 3, Math.sin(ang) * (2 + Math.random() * 4));
+    });
+  }
+
+  let start = performance.now();
+  let lastBurst = -1;
+  window.__VFX_DONE__ = false;
+  window.__VFX_TIME__ = 0;
+  window.__VFX_MANUAL__ = false;
+  window.__VFX_SET_TIME__ = (t) => {
+    window.__VFX_MANUAL__ = true;
+    window.__VFX_TIME__ = t;
+    renderAt(t, 1 / 24);
+  };
+
+  function renderAt(t, dt) {
+    window.__VFX_TIME__ = t;
+
+    // Continuous subtle environment motion
+    sun.intensity = 1.9 + Math.sin(t * 0.7) * 0.15;
+    fill.intensity = 35 + Math.sin(t * 1.3) * 8;
+
+    // PHASE 0: Key intro + hologram traverse (0–4.5)
+    const p0 = smoothstep(0, 4.5, t) * (1 - smoothstep(4.2, 5.2, t));
+    keyGroup.visible = t < 6.2;
+    keyGroup.position.x = -3.6 + Math.sin(t * 1.2) * 0.08;
+    keyGroup.position.y = 2.4 + Math.sin(t * 2.1) * 0.05;
+    keyGroup.rotation.z = Math.sin(t * 1.5) * 0.04;
+    keyCard.material.opacity = t < 5.5 ? 1 : 1 - smoothstep(5.5, 6.2, t);
+    keyCard.material.transparent = true;
+
+    holoGroup.visible = t < 5.5;
+    holoCars.forEach((g, i) => {
+      const scroll = ((t * 1.35) + i * 0.9) % 5;
+      g.position.x = (scroll - 2.5) * 2.8;
+      g.position.y = 2.1 + Math.sin(t * 2 + i) * 0.12;
+      g.rotation.y = t * 0.8 + i;
+      const mats = g.children.map(c => c.material);
+      const highlight = i === 4 && t > 3.2;
+      mats.forEach(m => {
+        m.opacity = highlight ? 0.45 + Math.sin(t * 8) * 0.15 : 0.15;
+        m.color.set(highlight ? 0xffcc66 : 0x44ddff);
+      });
+    });
+
+    // PHASE 1: Car appears (4.0–6.0) after key "tap" flash
+    const appear = smoothstep(4.0, 5.2, t);
+    car.visible = t >= 4.0 && t < 17.8 || t >= 21.5;
+    if (t >= 4.0 && t < 17.5) {
+      car.visible = true;
+      car.scale.setScalar(0.85 + appear * 0.15);
+      // Tap flash at ~4.8
+      if (t > 4.75 && t < 5.1) {
+        fill.color.setHex(0xffffff);
+        fill.intensity = 80;
+      }
+    }
+
+    // PHASE 2: Hover (5.5–8.0)
+    const hover = smoothstep(5.5, 7.0, t) * (1 - smoothstep(14.5, 16.5, t));
+    const hoverY = hover * (0.55 + Math.sin(t * 2.4) * 0.08);
+    car.position.y = hoverY;
+    car.rotation.y = Math.sin(t * 0.35) * 0.04;
+    suv.userData.wheels.forEach((w, i) => { w.rotation.x = t * (i % 2 ? 4 : -4) * hover; });
+    ring.material.opacity = hover * (0.35 + Math.sin(t * 5) * 0.15);
+    ring.scale.setScalar(1 + hover * 0.25 + Math.sin(t * 3) * 0.05);
+    dust.material.opacity = hover * 0.55;
+
+    // PHASE 3: Explode / unfold (8.0–12.5)
+    const explode = smoothstep(8.0, 9.0, t) * (1 - smoothstep(12.0, 13.2, t));
+    if (t > 8.0 && lastBurst < 8) {
+      spawnDebris();
+      burstSparks(new THREE.Vector3(0, 1.2, 0), 7);
+      lastBurst = 8;
+    }
+    if (explode > 0.01) {
+      car.visible = t < 11.5;
+      if (car.visible) {
+        suv.userData.body.material.transparent = true;
+        suv.userData.body.material.opacity = 1 - explode;
+      }
+      debris.forEach((d) => {
+        d.mesh.position.addScaledVector(d.vel, dt * explode);
+        d.vel.y -= 2.5 * dt;
+        d.mesh.rotation.x += d.spin.x * dt * 4;
+        d.mesh.rotation.y += d.spin.y * dt * 4;
+      });
+    }
+
+    // Sparks physics always
+    for (let i = 0; i < sparkCount; i++) {
+      sparkPos[i * 3] += sparkVel[i].x * dt;
+      sparkPos[i * 3 + 1] += sparkVel[i].y * dt;
+      sparkPos[i * 3 + 2] += sparkVel[i].z * dt;
+      sparkVel[i].y -= 6 * dt;
+    }
+    sparks.geometry.attributes.position.needsUpdate = true;
+    sparks.material.opacity = clamp01(explode * 1.2 + smoothstep(8, 9, t) * 0.5) * (1 - smoothstep(13, 15, t));
+
+    // PHASE 4: Robot forms (10.5–14.5)
+    const form = smoothstep(10.5, 13.0, t);
+    const unform = smoothstep(17.0, 20.5, t);
+    const robotAmt = form * (1 - unform);
+    robot.visible = robotAmt > 0.02;
+    robot.scale.setScalar(0.2 + robotAmt * 0.8);
+    robot.position.y = -0.2 + robotAmt * 0.3 + Math.sin(t * 1.5) * 0.03 * robotAmt;
+    robot.rotation.y = Math.sin(t * 0.5) * 0.08 * robotAmt;
+    // assemble limbs with offsets
+    armL.rotation.z = (1 - robotAmt) * 1.2;
+    armR.rotation.z = (1 - robotAmt) * -1.2;
+    legL.rotation.x = (1 - robotAmt) * 0.8;
+    legR.rotation.x = (1 - robotAmt) * -0.5;
+    eyeL.material.emissiveIntensity = 1.5 + Math.sin(t * 6) * 0.8;
+    eyeR.material.emissiveIntensity = eyeL.material.emissiveIntensity;
+    seam.material.emissiveIntensity = 1.5 + Math.sin(t * 4) * 1.0;
+
+    // Pull debris into robot during form
+    if (form > 0.3 && form < 0.95) {
+      debris.forEach((d, i) => {
+        const target = new THREE.Vector3(
+          Math.sin(i) * 0.8,
+          2.5 + (i % 5) * 0.4,
+          Math.cos(i) * 0.5
+        );
+        d.mesh.position.lerp(target, 0.04);
+        d.mesh.scale.setScalar(1 - form * 0.7);
+      });
+    }
+    if (form > 0.9) debris.forEach(d => { d.mesh.visible = false; });
+
+    // PHASE 5: Hold (14–17)
+    // (idle already via sin)
+
+    // PHASE 6: Reform to car (17–21.5)
+    if (unform > 0.05 && lastBurst < 17) {
+      spawnDebris();
+      burstSparks(new THREE.Vector3(0, 3, 0), 5);
+      lastBurst = 17;
+    }
+    if (unform > 0.01 && unform < 0.85) {
+      debris.forEach((d) => {
+        d.mesh.visible = true;
+        d.mesh.position.addScaledVector(d.vel, dt * 0.6);
+        d.vel.y -= 3 * dt;
+        d.mesh.rotation.x += dt * 3;
+      });
+    }
+    const carBack = smoothstep(20.0, 22.0, t);
+    if (carBack > 0) {
+      car.visible = true;
+      car.position.y = (1 - carBack) * 0.8;
+      car.scale.setScalar(0.7 + carBack * 0.3);
+      suv.userData.body.material.opacity = carBack;
+      suv.userData.body.material.transparent = carBack < 1;
+      debris.forEach(d => {
+        d.mesh.position.lerp(new THREE.Vector3(0, 1, 0), 0.08);
+        if (carBack > 0.7) d.mesh.visible = false;
+      });
+    }
+
+    // Settle (22–26)
+    if (t > 22) {
+      car.position.y = Math.max(0, car.position.y - dt * 0.5);
+      ring.material.opacity *= 0.95;
+      dust.material.opacity *= 0.96;
+    }
+
+    // Dust swirl continuous while hovering
+    if (hover > 0.1) {
+      const arr = dust.geometry.attributes.position.array;
+      for (let i = 0; i < dustCount; i++) {
+        const ix = i * 3;
+        arr[ix] += Math.sin(t * 3 + i) * 0.01;
+        arr[ix + 1] = 0.05 + Math.abs(Math.sin(t * 2 + i * 0.2)) * 0.5 * hover;
+        arr[ix + 2] += Math.cos(t * 2.5 + i) * 0.01;
+      }
+      dust.geometry.attributes.position.needsUpdate = true;
+    }
+
+    renderer.render(scene, camera);
+    if (t >= DURATION) window.__VFX_DONE__ = true;
+  }
+
+  function animate() {
+    if (window.__VFX_MANUAL__) return;
+    const t = (performance.now() - start) / 1000;
+    renderAt(t, 1 / 60);
+    if (t < DURATION) requestAnimationFrame(animate);
+    else window.__VFX_DONE__ = true;
+  }
+
+  // Exact 1280x720 for capture (no letterbox)
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  document.body.style.margin = '0';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('hud').style.display =
+    new URLSearchParams(location.search).get('hud') === '0' ? 'none' : 'block';
+
+  // Start after short warm-up for textures
+  setTimeout(() => {
+    start = performance.now();
+    if (!new URLSearchParams(location.search).has('manual')) animate();
+    window.__VFX_READY__ = true;
+  }, 500);
+})();
+  </script>
+</body>
+</html>

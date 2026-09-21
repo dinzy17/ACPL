@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XUV 7XO Transformer VFX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --steel: #1a1d22;
+      --ash: #8b939e;
+      --ember: #c45c26;
+      --fog: #d8dde3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--fog);
+      background:
+        radial-gradient(ellipse 90% 60% at 50% 0%, #2a3038 0%, transparent 55%),
+        linear-gradient(165deg, #0e1014 0%, #1c2229 45%, #12151a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem 3rem;
+      gap: 1.5rem;
+    }
+    header {
+      text-align: center;
+      animation: rise 1.1s ease-out both;
+    }
+    h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(2.6rem, 8vw, 4.5rem);
+      letter-spacing: 0.06em;
+      line-height: 0.95;
+      font-weight: 400;
+    }
+    h1 span { color: var(--ember); }
+    p {
+      margin-top: 0.65rem;
+      color: var(--ash);
+      font-size: 0.95rem;
+      max-width: 36rem;
+    }
+    .stage {
+      width: min(960px, 100%);
+      position: relative;
+      animation: rise 1.2s 0.15s ease-out both;
+    }
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(120deg, #4a5562, var(--ember), #4a5562);
+      opacity: 0.55;
+      z-index: 0;
+      filter: blur(0.5px);
+    }
+    video {
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      background: #000;
+      vertical-align: middle;
+    }
+    .meta {
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ash);
+      animation: rise 1.2s 0.3s ease-out both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>XUV 7XO <span>TRANSFORM</span></h1>
+    <p>Galaxy Grey variant — key remote traverse, hover, mechanical unfold into a towering robot, then reform on the open field.</p>
+  </header>
+  <div class="stage">
+    <video controls autoplay muted playsinline src="./output/mahindra_xuv7xo_transformer_vfx.mp4"></video>
+  </div>
+  <p class="meta">Static camera · Cinematic VFX · Mechanical SFX</p>
+</body>
+</html>

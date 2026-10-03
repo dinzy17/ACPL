@@ -1271,7 +1271,8 @@ export function attachSockets(io, store, urls) {
       "reg-upsert-form",
       wrap((p) => {
         requireRole(socket, REG_ADMIN);
-        const form = upsertForm(store, p);
+        const who = socket.data.userId || socket.data.role || "admin";
+        const form = upsertForm(store, p, { saveUploadFn: saveUpload, performedBy: who });
         io.to("admin").emit("admin-state", adminState(store));
         return { admin: adminState(store), form };
       })

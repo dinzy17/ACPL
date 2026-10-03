@@ -132,6 +132,10 @@ export function migrateRegistration(store) {
   });
 
   dedupePlayersByName(store);
+  // If capacity was raised while people sat on the waiting list, promote them now.
+  for (const form of store.registrationForms || []) {
+    fillAvailableSlotsFromWaiting(store, form, { performedBy: "system" });
+  }
   return store;
 }
 
@@ -1124,7 +1128,7 @@ export function recreateForm(store, { tournamentId, template, force = false }) {
   return createForm(store, { tournamentId, template: template || "acpl6" });
 }
 
-export function upsertForm(store, patch) {
+export function upsertForm(store, patch, { saveUploadFn, performedBy } = {}) {
   ensureCollections(store);
   const i = store.registrationForms.findIndex((f) => f.id === patch.id);
   if (i < 0) throw new Error("Form not found");
@@ -1156,6 +1160,11 @@ export function upsertForm(store, patch) {
     );
   }
   store.registrationForms[i] = next;
+  // Capacity increases (overall or per-category) should immediately absorb the waiting list.
+  fillAvailableSlotsFromWaiting(store, next, {
+    saveUploadFn,
+    performedBy: performedBy || "system"
+  });
   return next;
 }
 
@@ -1435,6 +1444,43 @@ export function promoteNextWaiting(store, form, category, performedBy, { saveUpl
   return next;
 }
 
+/**
+ * Promote waiting-list registrations into any free capacity (overall or per-category).
+ * Used after capacity increases and on store migration so dashboard slots match the list.
+ */
+export function fillAvailableSlotsFromWaiting(store, form, { saveUploadFn, performedBy } = {}) {
+  if (!form) return [];
+  ensureCollections(store);
+  const promoted = [];
+  const who = performedBy || "system";
+
+  const promoteWhileRoom = (category) => {
+    while (true) {
+      const limit = capacityLimit(form, category);
+      if (!(limit > 0)) break;
+      const used = category != null ? countRegistered(store, form, category) : countRegistered(store, form);
+      if (used >= limit) break;
+      const next = promoteNextWaiting(store, form, category, who, { saveUploadFn });
+      if (!next) break;
+      promoted.push(next);
+    }
+  };
+
+  if (form.useCategoryCapacity) {
+    const cats = new Set([
+      ...Object.keys(form.categoryCapacity || {}),
+      ...(store.registrations || [])
+        .filter((r) => r.formId === form.id)
+        .map((r) => categoryKey(r.values))
+        .filter(Boolean)
+    ]);
+    for (const cat of cats) promoteWhileRoom(cat);
+  } else {
+    promoteWhileRoom(null);
+  }
+  return promoted;
+}
+
 export function updateRegistrationStatus(store, registrationId, status, performedBy, { confirmPromote, saveUploadFn } = {}) {
   return withRegLock(() => {
     ensureCollections(store);
@@ -1555,7 +1601,10 @@ export function dashboardForForm(store, formId) {
   const byPayment = {};
   for (const r of regs) {
     const c = categoryKey(r.values) || "—";
-    byCategory[c] = (byCategory[c] || 0) + 1;
+    // Match the per-category slot cards: only count fully registered players.
+    if (r.status === "registered") {
+      byCategory[c] = (byCategory[c] || 0) + 1;
+    }
     byStatus[r.status] = (byStatus[r.status] || 0) + 1;
     byPayment[r.paymentStatus || "pending"] = (byPayment[r.paymentStatus || "pending"] || 0) + 1;
   }

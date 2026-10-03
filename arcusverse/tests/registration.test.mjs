@@ -12,6 +12,9 @@ import {
   unlinkPlayerFromAcpl,
   createForm,
   setFormStatus,
+  upsertForm,
+  dashboardForForm,
+  fillAvailableSlotsFromWaiting,
   withRegLock,
   exportCsv
 } from "../server/registration.mjs";
@@ -485,6 +488,64 @@ test("explicit ACPL unlink is not re-attached by promote", async () => {
   await updateRegistrationStatus(store, regId, "waiting", "admin");
   await updateRegistrationStatus(store, regId, "registered", "admin", { confirmPromote: true });
   assert.equal(player().acplPlayerId, null);
+});
+
+test("raising category capacity promotes waiting and fixes dashboard slots", async () => {
+  const store = makeStore();
+  const form = await seedOpenForm(store, 100);
+  form.useCategoryCapacity = true;
+  form.categoryCapacity = { "Men's": 3, "Women's": 10, "Kid's": 10 };
+
+  const submit = async (i, category) => {
+    const photo = {
+      id: uid(),
+      formId: form.id,
+      fieldKey: "playerPhoto",
+      registrationId: null,
+      playerId: null,
+      originalFilename: "p.png",
+      storedFilename: `${uid()}.png`,
+      mimeType: "image/png",
+      fileSize: 10,
+      storagePath: "x.png",
+      uploadedAt: Date.now()
+    };
+    store.registrationFiles.push(photo);
+    const out = await submitRegistration(
+      store,
+      {
+        token: form.publicToken,
+        values: { ...baseValues(i), category, mobile: `9${String(200000000 + i).slice(0, 9)}` },
+        fileIds: { playerPhoto: photo.id }
+      },
+      { saveUploadFn: () => `/uploads/x.png`, sendEmail: false }
+    );
+    await new Promise((r) => setTimeout(r, 2));
+    return out.registration;
+  };
+
+  for (let i = 1; i <= 5; i++) await submit(i, "Men's");
+  assert.equal(store.registrations.filter((r) => r.status === "registered").length, 3);
+  assert.equal(store.registrations.filter((r) => r.status === "waiting").length, 2);
+
+  let dash = dashboardForForm(store, form.id);
+  assert.equal(dash.availableSlotsByCategory["Men's"].registered, 3);
+  assert.equal(dash.availableSlotsByCategory["Men's"].available, 0);
+  assert.equal(dash.byCategory["Men's"], 3);
+
+  // Capacity raised to 5 — waiting list must be absorbed so dashboard matches registrations.
+  upsertForm(store, {
+    id: form.id,
+    categoryCapacity: { "Men's": 5, "Women's": 10, "Kid's": 10 }
+  });
+
+  assert.equal(store.registrations.filter((r) => r.status === "registered").length, 5);
+  assert.equal(store.registrations.filter((r) => r.status === "waiting").length, 0);
+  dash = dashboardForForm(store, form.id);
+  assert.equal(dash.availableSlotsByCategory["Men's"].registered, 5);
+  assert.equal(dash.availableSlotsByCategory["Men's"].available, 0);
+  assert.equal(dash.byCategory["Men's"], 5);
+  assert.equal(fillAvailableSlotsFromWaiting(store, store.registrationForms[0]).length, 0);
 });
 
 test("concurrent submissions never overflow capacity", async () => {

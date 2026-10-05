@@ -1253,7 +1253,10 @@ export function attachSockets(io, store, urls) {
         const staff = STAFF.includes(socket.data.role);
         const raw = p.amount;
         const amount = raw === undefined || raw === null || raw === "" ? null : Number(raw);
-        const auction = placeBid(store, auctionId, teamId, amount, { staff });
+        const auction = placeBid(store, auctionId, teamId, amount, {
+          staff,
+          denom: p.denom != null && p.denom !== "" ? Number(p.denom) : undefined
+        });
         broadcast(auction.id);
         return ok(store, auction.id);
       })

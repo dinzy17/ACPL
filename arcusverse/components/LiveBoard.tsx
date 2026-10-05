@@ -237,6 +237,7 @@ export function LiveBoard({
 
   const aid = auctionId || auction?.id;
   const teams = state.teams || [];
+  const mineMaxBid = mine ? maxBidForDenom(mine.stats, denom, auction) : 0;
 
   const paddles = useMemo(() => {
     const cur = currentBid || 0;
@@ -252,8 +253,8 @@ export function LiveBoard({
     const next = lastBidTeamId ? cur + step : Math.max(cur, live?.currentPlayer?.basePrice || 0);
     const cap =
       mode === "auctioneer"
-        ? Number(teams.find((t: any) => t.id === bidTeamId)?.stats?.maxBid ?? Infinity)
-        : Number(mine?.stats?.maxBid ?? Infinity);
+        ? maxBidForDenom(teams.find((t: any) => t.id === bidTeamId)?.stats, denom, auction)
+        : maxBidForDenom(mine?.stats, denom, auction);
     const purse =
       mode === "auctioneer"
         ? Number(teams.find((t: any) => t.id === bidTeamId)?.stats?.purseLeft ?? Infinity)
@@ -276,18 +277,20 @@ export function LiveBoard({
     live?.currentPlayer,
     auction.increments,
     auction.increments,
-    mine?.stats?.maxBid,
+    mine?.stats,
     mine?.stats?.purseLeft,
     mode,
     bidTeamId,
-    teams
+    teams,
+    denom,
+    auction.maxSquad
   ]);
 
   const soldLakhs = () => (soldPrice === "" ? currentBid : crToLakhs(soldPrice));
 
   const refuseOverCap = (team: any, priceLakhs: number, label: string) => {
     const purse = Number(team?.stats?.purseLeft ?? 0);
-    const cap = Number(team?.stats?.maxBid ?? 0);
+    const cap = maxBidForDenom(team?.stats, denom, auction);
     if (priceLakhs > purse + 1e-9) {
       throw new Error(`${label} exceeds remaining purse for ${team?.name || "this team"} (${inr(purse)})`);
     }
@@ -320,7 +323,7 @@ export function LiveBoard({
       if (!whoId) throw new Error("Pick a team");
       const who = teams.find((t: any) => t.id === whoId);
       if (amount != null) refuseOverCap(who, amount, "Bid");
-      const res: any = await emit("bid", { auctionId: aid, teamId: whoId, amount });
+      const res: any = await emit("bid", { auctionId: aid, teamId: whoId, amount, denom });
       if (res?.public) onPublic?.(res.public);
     } catch (e: any) {
       setErr(e.message);
@@ -343,8 +346,27 @@ export function LiveBoard({
   };
 
   const holding = lastBidTeamId === teamId;
+  const minNextBid = useMemo(() => {
+    const cur = currentBid || 0;
+    const incs = auction.increments || [];
+    const stepRow = [...incs]
+      .sort((a: any, b: any) => (a.from ?? 0) - (b.from ?? 0))
+      .find((r: any) => cur >= (r.from ?? 0) && cur < (r.to ?? 999999999));
+    const step = stepRow?.step ?? 5;
+    return lastBidTeamId ? cur + step : Math.max(cur, live?.currentPlayer?.basePrice || 0);
+  }, [currentBid, lastBidTeamId, live?.currentPlayer, auction.increments]);
+
   const canBid =
-    mode === "owner" && liveBidding && mine?.stats?.canBid && !holding && !paused && auction.status === "live";
+    mode === "owner" &&
+    liveBidding &&
+    !holding &&
+    !paused &&
+    auction.status === "live" &&
+    !!mine &&
+    !mine.stats?.atBaseLimit &&
+    rosterSize(mine.stats) < Number(auction.maxSquad || 0) &&
+    Number(mine.stats?.purseLeft || 0) >= minNextBid &&
+    mineMaxBid >= minNextBid;
 
   if (notStarted && mode !== "auctioneer") {
     return (
@@ -568,11 +590,11 @@ export function LiveBoard({
               </h3>
               <PurseMeter spent={mine.stats?.purseSpent || 0} total={auction.purse} />
               <p className="mt-2 text-sm">
-                Squad {rosterSize(mine.stats)}/{auction.maxSquad} · max bid {inr(mine.stats?.maxBid)}
+                Squad {rosterSize(mine.stats)}/{auction.maxSquad} · max bid {inr(mineMaxBid)}
               </p>
               <RemainingToBuy stats={mine.stats} />
               <label className="mt-2 block text-[11px] uppercase tracking-widest text-turf">
-                Rival max using
+                Max bid using
                 <select className="field mt-1" value={String(denom)} onChange={(e) => setDenom(Number(e.target.value))}>
                   {denoms.map((d) => (
                     <option key={d} value={d}>

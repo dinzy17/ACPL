@@ -13,10 +13,16 @@ export function nextBidAmount(current, basePrice, increments, hasBidder = false)
   return floor + nextIncrement(floor, increments);
 }
 
-function assertTeamCanAfford(store, teamId, stats, amount, label) {
+function maxBidForDenom(stats, denom) {
+  if (denom == null || denom === "") return Number(stats.maxBid) || 0;
+  const row = (stats.maxBidByDenom || []).find((d) => Number(d.purse) === Number(denom));
+  return row ? Number(row.maxBid) : Number(stats.maxBid) || 0;
+}
+
+function assertTeamCanAfford(store, teamId, stats, amount, label, maxBidOverride) {
   const teamName = store.teams.find((t) => t.id === teamId)?.name || "this team";
   const purseLeft = Number(stats.purseLeft) || 0;
-  const maxBid = Number(stats.maxBid) || 0;
+  const maxBid = maxBidOverride != null ? Number(maxBidOverride) : Number(stats.maxBid) || 0;
   if (amount > purseLeft + 1e-9) {
     throw new Error(`${label} is more than remaining purse for ${teamName} (${purseLeft}L / ${inrCr(purseLeft)})`);
   }
@@ -602,7 +608,9 @@ export function placeBid(store, auctionId, teamId, amount, opts = {}) {
     throw new Error(staff ? `Bid cannot be below base (${floor}L)` : `Minimum bid is ${minNext}L`);
   }
   if (stats.rosterCount >= auction.maxSquad) throw new Error("Squad is full");
-  assertTeamCanAfford(store, teamId, stats, bid, "Bid");
+  const denom = opts.denom != null && opts.denom !== "" ? Number(opts.denom) : null;
+  const maxBidCap = denom != null && Number.isFinite(denom) ? maxBidForDenom(stats, denom) : stats.maxBid;
+  assertTeamCanAfford(store, teamId, stats, bid, "Bid", maxBidCap);
 
   auction.live.currentBid = bid;
   auction.live.lastBidTeamId = teamId;

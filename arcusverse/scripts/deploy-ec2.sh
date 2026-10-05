@@ -27,9 +27,18 @@ cp "$PEM" "$PEM_USE"
 chmod 600 "$PEM_USE"
 SSH_OPTS=(-i "$PEM_USE" -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes)
 
-echo "Packing $ROOT ..."
+echo "Packing $ROOT (code only — production data/ is preserved on the server) ..."
 tar -C "$ROOT" -czf "$BUNDLE" \
-  --exclude=node_modules --exclude=.next --exclude=.git --exclude='*.log' .
+  --exclude=node_modules \
+  --exclude=.next \
+  --exclude=.git \
+  --exclude='*.log' \
+  --exclude='data/store.json' \
+  --exclude='data/private-uploads' \
+  --exclude='data/private-uploads/*' \
+  --exclude='public/uploads' \
+  --exclude='public/uploads/*' \
+  .
 
 echo "Uploading to $REMOTE ..."
 scp "${SSH_OPTS[@]}" "$BUNDLE" "${REMOTE}:/home/ec2-user/arcusverse-deploy.tgz"
@@ -38,11 +47,24 @@ scp "${SSH_OPTS[@]}" "$ROOT/deploy/arcusverse.service" "${REMOTE}:/home/ec2-user
 ssh "${SSH_OPTS[@]}" "$REMOTE" bash -s <<EOF
 set -euo pipefail
 PUBLIC_URL='$PUBLIC_URL'
-echo "Extracting..."
+echo "Extracting (preserving data/store.json, uploads, private-uploads)..."
 mkdir -p /home/ec2-user/ArcusVerse
 cd /home/ec2-user/ArcusVerse
+# Backup live data before extract in case a future bundle still includes it
+TS=\$(date +%Y%m%d-%H%M%S)
+if [[ -f data/store.json ]]; then
+  cp -a data/store.json "/home/ec2-user/store.json.predeploy.\$TS"
+fi
 tar -xzf /home/ec2-user/arcusverse-deploy.tgz
 rm -f /home/ec2-user/arcusverse-deploy.tgz
+# Prefer the pre-deploy store if the bundle overwrote it with a tiny/empty seed
+if [[ -f "/home/ec2-user/store.json.predeploy.\$TS" ]]; then
+  if [[ ! -f data/store.json ]] || [[ \$(wc -c < data/store.json) -lt \$(wc -c < "/home/ec2-user/store.json.predeploy.\$TS") ]]; then
+    echo "Restoring preserved store.json from pre-deploy backup"
+    mkdir -p data
+    cp -a "/home/ec2-user/store.json.predeploy.\$TS" data/store.json
+  fi
+fi
 
 NODE_BIN=\$(command -v node)
 sed -i "s|Environment=PUBLIC_URL=.*|Environment=PUBLIC_URL=\${PUBLIC_URL}|" /home/ec2-user/arcusverse.service

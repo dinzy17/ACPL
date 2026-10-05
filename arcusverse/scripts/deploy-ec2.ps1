@@ -19,11 +19,19 @@ icacls $pemUse /inheritance:r | Out-Null
 icacls $pemUse /grant:r "$env:USERNAME`:R" | Out-Null
 $sshArgs = @("-i", $pemUse, "-o", "StrictHostKeyChecking=accept-new", "-o", "IdentitiesOnly=yes")
 
-Write-Host "Packing project from $root ..."
+Write-Host "Packing project from $root (excluding production data/uploads) ..."
 if (Test-Path $bundle) { Remove-Item $bundle -Force }
 
 Push-Location $root
-& tar -czf $bundle --exclude=node_modules --exclude=.next --exclude=.git --exclude="*.log" .
+& tar -czf $bundle `
+  --exclude=node_modules `
+  --exclude=.next `
+  --exclude=.git `
+  --exclude="*.log" `
+  --exclude="data/store.json" `
+  --exclude="data/private-uploads" `
+  --exclude="public/uploads" `
+  .
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "tar failed" }
 Pop-Location
 
@@ -58,11 +66,22 @@ fi
 node -v
 npm -v
 
-echo "Extracting..."
+echo "Extracting (preserving data/store.json)..."
 mkdir -p /home/ec2-user/ArcusVerse
 cd /home/ec2-user/ArcusVerse
+TS=`$(date +%Y%m%d-%H%M%S)
+if [[ -f data/store.json ]]; then
+  cp -a data/store.json "/home/ec2-user/store.json.predeploy.$${TS}"
+fi
 tar -xzf /home/ec2-user/arcusverse-deploy.tgz
 rm -f /home/ec2-user/arcusverse-deploy.tgz
+if [[ -f "/home/ec2-user/store.json.predeploy.$${TS}" ]]; then
+  if [[ ! -f data/store.json ]] || [[ `$(wc -c < data/store.json) -lt `$(wc -c < "/home/ec2-user/store.json.predeploy.$${TS}") ]]; then
+    echo "Restoring preserved store.json from pre-deploy backup"
+    mkdir -p data
+    cp -a "/home/ec2-user/store.json.predeploy.$${TS}" data/store.json
+  fi
+fi
 
 NODE_BIN=`$(command -v node)
 sed -i "s|Environment=PUBLIC_URL=.*|Environment=PUBLIC_URL=$${PUBLIC_URL}|" /home/ec2-user/arcusverse.service

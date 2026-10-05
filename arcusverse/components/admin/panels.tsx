@@ -1082,7 +1082,6 @@ export function AuctionsPanel({ admin, emit }: any) {
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [maxByBase, setMaxByBase] = useState<Record<string, string>>({});
-  const [newBaseCr, setNewBaseCr] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const editingId = useRef("");
@@ -1132,14 +1131,23 @@ export function AuctionsPanel({ admin, emit }: any) {
 
   const bases = useMemo(() => {
     const set = new Set<string>();
-    for (const k of Object.keys(maxByBase)) {
-      if (k && Number.isFinite(Number(k))) set.add(String(Number(k)));
+    const selectedPlayers = playerIds.length
+      ? admin.players.filter((p: any) => playerIds.includes(p.id))
+      : admin.players.filter(
+          (p: any) =>
+            p.categoryId === categoryId && String(p.sport || "Cricket").toLowerCase() === tourSport
+        );
+    for (const p of selectedPlayers) {
+      if (p.basePrice == null || p.basePrice === "") continue;
+      const n = Number(p.basePrice);
+      if (Number.isFinite(n)) set.add(String(n));
     }
-    for (const p of admin.players.filter((x: any) => x.categoryId === categoryId)) {
-      if (p.basePrice != null && p.basePrice !== "") set.add(String(Number(p.basePrice)));
+    for (const raw of denoms.split(/[,\s]+/).filter(Boolean)) {
+      const lakhs = crToLakhs(raw);
+      if (lakhs && Number.isFinite(Number(lakhs))) set.add(String(Number(lakhs)));
     }
     return Array.from(set).sort((a, b) => Number(a) - Number(b));
-  }, [admin.players, categoryId, maxByBase]);
+  }, [admin.players, playerIds, categoryId, tourSport, denoms]);
 
   const parseIncrements = () => rowsToIncrements(incRows);
 
@@ -1155,7 +1163,6 @@ export function AuctionsPanel({ admin, emit }: any) {
     setSequence("random");
     setIncRows(defaultIncrementRows());
     setMaxByBase({});
-    setNewBaseCr("");
     setErr("");
     setNote("New auction");
     if (tournamentId) applyRoster(tournamentId);
@@ -1227,7 +1234,6 @@ export function AuctionsPanel({ admin, emit }: any) {
     setMaxByBase(
       Object.fromEntries(Object.entries(a.maxByBasePrice || {}).map(([k, v]) => [String(Number(k)), String(v)]))
     );
-    setNewBaseCr("");
     setIncRows(incrementsToRows(a.increments));
     setErr("");
     setNote(`Editing ${a.name}`);
@@ -1365,54 +1371,26 @@ export function AuctionsPanel({ admin, emit }: any) {
             Max players at each base price
           </p>
           <p className="md:col-span-3 text-sm" style={{ color: "var(--muted)" }}>
-            Leave blank for no cap at that base price. Add a base price below if players do not have one set yet.
+            Fields appear automatically from player base prices and max-bid denominators. Leave blank for no cap —
+            e.g. set 6 at 2 Cr so each team can buy at most 6 players of that base.
           </p>
           {bases.map((b) => (
-            <div key={b} className="flex items-end gap-2">
-              <Field
-                className="flex-1"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                label={`Max players at base ${inr(Number(b))}`}
-                value={maxByBase[b] ?? ""}
-                placeholder="No cap"
-                onChange={(e) => setMaxByBase({ ...maxByBase, [b]: e.target.value })}
-              />
-              <Button
-                onClick={() => {
-                  const next = { ...maxByBase };
-                  delete next[b];
-                  setMaxByBase(next);
-                }}
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
-          <div className="md:col-span-3 flex flex-wrap items-end gap-2">
             <Field
-              label="Base price (crores)"
-              value={newBaseCr}
-              onChange={(e) => setNewBaseCr(e.target.value)}
-              placeholder="e.g. 2"
+              key={b}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              label={`Max players at base ${inr(Number(b))}`}
+              value={maxByBase[b] ?? ""}
+              placeholder="No cap"
+              onChange={(e) => setMaxByBase({ ...maxByBase, [b]: e.target.value })}
             />
-            <Button
-              onClick={() => {
-                const n = Number(newBaseCr);
-                if (!Number.isFinite(n) || n < 0 || newBaseCr.trim() === "") {
-                  setErr("Enter a valid base price in crores to add");
-                  return;
-                }
-                const key = String(n);
-                if (maxByBase[key] == null) setMaxByBase({ ...maxByBase, [key]: "" });
-                setNewBaseCr("");
-                setErr("");
-              }}
-            >
-              Add base price
-            </Button>
-          </div>
+          ))}
+          {!bases.length && (
+            <p className="md:col-span-3 text-xs" style={{ color: "var(--muted)" }}>
+              Set player base prices and/or max-bid denominators to generate these fields.
+            </p>
+          )}
         </div>
         <div className="md:col-span-3">
           <p className="mb-2 text-[11px] uppercase" style={{ color: "var(--muted)" }}>

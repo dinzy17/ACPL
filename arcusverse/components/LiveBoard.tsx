@@ -86,6 +86,12 @@ function TeamIntel({ team, auction, denom }: { team: any; auction: any; denom: n
       <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
         Squad {rosterCount}/{auction.maxSquad}
       </p>
+      {s.atBaseLimit ? (
+        <p className="mt-2 text-xs font-semibold" style={{ color: "var(--crimson)" }}>
+          Cannot bid — max players at this base price
+          {s.baseCap != null ? ` (${s.baseCount}/${s.baseCap})` : ""}
+        </p>
+      ) : null}
       <RemainingToBuy stats={s} />
       <ul className="mt-2 space-y-0.5 text-sm">
         {roster.map((r: any) => (
@@ -182,6 +188,24 @@ export function LiveBoard({
   const denoms: number[] = auction.denominators?.length ? auction.denominators.map(Number) : [auction.purse];
   const [denom, setDenom] = useState<number>(denoms[0]);
 
+  const aid = auctionId || auction?.id;
+  const teams = state.teams || [];
+  const mineMaxBid = mine ? maxBidForDenom(mine.stats, denom, auction) : 0;
+
+  const teamsEligibleForLot = useMemo(() => {
+    const maxSquad = Number(auction.maxSquad || 0);
+    return teams.filter((t: any) => {
+      if (t.stats?.atBaseLimit) return false;
+      if (maxSquad > 0 && rosterSize(t.stats) >= maxSquad) return false;
+      return true;
+    });
+  }, [teams, auction.maxSquad, live?.currentPlayer?.id]);
+
+  const teamsBlockedAtBase = useMemo(
+    () => teams.filter((t: any) => t.stats?.atBaseLimit),
+    [teams, live?.currentPlayer?.id]
+  );
+
   useEffect(() => {
     if (auction?.sport) setSport(auction.sport);
   }, [auction?.sport, setSport]);
@@ -202,11 +226,14 @@ export function LiveBoard({
   }, [celebration?.at]);
 
   useEffect(() => {
-    setSoldTeamId(lastBidTeamId || state.teams?.[0]?.id || "");
-    setBidTeamId(lastBidTeamId || state.teams?.[0]?.id || "");
+    const preferred = lastBidTeamId && teamsEligibleForLot.some((t: any) => t.id === lastBidTeamId)
+      ? lastBidTeamId
+      : teamsEligibleForLot[0]?.id || "";
+    setSoldTeamId(preferred);
+    setBidTeamId(preferred);
     setSoldPrice(currentBid ? String(lakhsToCr(currentBid)) : "");
     setBidPrice(currentBid ? String(lakhsToCr(currentBid)) : "");
-  }, [live?.currentPlayer?.id, currentBid, lastBidTeamId, state.teams]);
+  }, [live?.currentPlayer?.id, currentBid, lastBidTeamId, teamsEligibleForLot]);
 
   useEffect(() => {
     if (mode !== "auctioneer") return;
@@ -234,10 +261,6 @@ export function LiveBoard({
       return () => clearTimeout(t);
     }
   }, [currentBid, lastBidTeamId, mode, teamId]);
-
-  const aid = auctionId || auction?.id;
-  const teams = state.teams || [];
-  const mineMaxBid = mine ? maxBidForDenom(mine.stats, denom, auction) : 0;
 
   const paddles = useMemo(() => {
     const cur = currentBid || 0;
@@ -484,12 +507,18 @@ export function LiveBoard({
               {mode === "auctioneer" && (
                 <div className="mt-4 space-y-3 border-t border-[color-mix(in_srgb,var(--ink)_10%,transparent)] pt-3">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-turf">Call a bid (shown live)</p>
+                  {teamsBlockedAtBase.length > 0 && live?.currentPlayer ? (
+                    <p className="text-sm font-semibold" style={{ color: "var(--crimson)" }}>
+                      Cannot bid for {inr(live.currentPlayer.basePrice)} base:{" "}
+                      {teamsBlockedAtBase.map((t: any) => t.name).join(", ")}
+                    </p>
+                  ) : null}
                   <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                       Bidding team
                       <select className="field mt-1" value={bidTeamId} onChange={(e) => setBidTeamId(e.target.value)}>
-                        {!teams.length && <option value="">No teams</option>}
-                        {teams.map((t: any) => (
+                        {!teamsEligibleForLot.length && <option value="">No eligible teams</option>}
+                        {teamsEligibleForLot.map((t: any) => (
                           <option key={t.id} value={t.id}>
                             {t.name}
                           </option>
@@ -499,6 +528,7 @@ export function LiveBoard({
                     <Field label="Bid (Cr)" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)} />
                     <Button
                       variant="lime"
+                      disabled={!bidTeamId}
                       onClick={() => bid(bidPrice === "" ? undefined : crToLakhs(bidPrice), bidTeamId)}
                     >
                       Call bid
@@ -506,7 +536,7 @@ export function LiveBoard({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {paddles.map((p) => (
-                      <Button key={p.label} variant="ghost" onClick={() => bid(p.amount, bidTeamId)}>
+                      <Button key={p.label} variant="ghost" disabled={!bidTeamId} onClick={() => bid(p.amount, bidTeamId)}>
                         {p.label}
                       </Button>
                     ))}
@@ -515,8 +545,8 @@ export function LiveBoard({
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                       Winning team
                       <select className="field mt-1" value={soldTeamId} onChange={(e) => setSoldTeamId(e.target.value)}>
-                        {!teams.length && <option value="">No teams in this auction</option>}
-                        {teams.map((t: any) => (
+                        {!teamsEligibleForLot.length && <option value="">No eligible teams</option>}
+                        {teamsEligibleForLot.map((t: any) => (
                           <option key={t.id} value={t.id}>
                             {t.name}
                           </option>
@@ -524,7 +554,7 @@ export function LiveBoard({
                       </select>
                     </label>
                     <Field label="Sold price (Cr)" value={soldPrice} onChange={(e) => setSoldPrice(e.target.value)} />
-                    <Button variant="lime" onClick={() => act("sold", { teamId: soldTeamId })}>
+                    <Button variant="lime" disabled={!soldTeamId} onClick={() => act("sold", { teamId: soldTeamId })}>
                       Confirm sold
                     </Button>
                   </div>
@@ -542,7 +572,10 @@ export function LiveBoard({
                     : paused
                       ? "Auction is paused."
                       : mine.stats?.atBaseLimit
-                        ? "Bid locked — max players at this base price."
+                        ? `Cannot bid — max players at ${inr(live?.currentPlayer?.basePrice)} base` +
+                          (mine.stats.baseCap != null
+                            ? ` (${mine.stats.baseCount}/${mine.stats.baseCap}).`
+                            : ".")
                         : "You cannot bid on this lot (purse, squad, or category limit)."}
                 </p>
               )}

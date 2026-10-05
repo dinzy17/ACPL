@@ -632,6 +632,7 @@ export function markSold(store, auctionId, override = {}) {
   if (!Number.isFinite(soldPrice) || soldPrice <= 0) throw new Error("Enter a valid sold price");
   const stats = teamLiveStats(store, auction, teamId);
   if (stats.rosterCount >= auction.maxSquad) throw new Error("That squad is full");
+  if (stats.atBaseLimit) throw new Error("Squad limit reached for this base price");
   assertTeamCanAfford(store, teamId, stats, soldPrice, "Sold price");
   const row = {
     playerId: player.id,

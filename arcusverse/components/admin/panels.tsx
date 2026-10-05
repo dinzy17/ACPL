@@ -258,12 +258,26 @@ export function PlayersPanel({ admin, emit }: any) {
   const [bulkBaseCr, setBulkBaseCr] = useState("");
   const [mergeAbsorbId, setMergeAbsorbId] = useState("");
   const [msg, setMsg] = useState("");
+  const [listSort, setListSort] = useState<"name" | "category">("name");
   const { setSport } = useApp();
   const sameSport = (x: any) => String(x.sport || "Cricket").toLowerCase() === String(form.sport || "Cricket").toLowerCase();
   const isCricket = String(form.sport || "Cricket").toLowerCase() === "cricket";
   const teams = admin.teams.filter((t: any) => t.categoryId === form.categoryId && sameSport(t));
   const sportTournaments = admin.tournaments.filter((t: any) => sameSport(t));
-  const listedPlayers = admin.players.filter((p: any) => sameSport(p));
+  const listedPlayers = useMemo(() => {
+    const sport = String(form.sport || "Cricket").toLowerCase();
+    const catLabel = (categoryId: string) =>
+      String(admin.categories.find((c: any) => c.id === categoryId)?.name || "");
+    const rows = admin.players.filter((p: any) => String(p.sport || "Cricket").toLowerCase() === sport);
+    return [...rows].sort((a: any, b: any) => {
+      if (listSort === "category") {
+        const ca = catLabel(a.categoryId).toLowerCase();
+        const cb = catLabel(b.categoryId).toLowerCase();
+        if (ca !== cb) return ca.localeCompare(cb);
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" });
+    });
+  }, [admin.players, admin.categories, form.sport, listSort]);
   const selectedLive = form.id ? listedPlayers.find((p: any) => p.id === form.id) : null;
 
   useEffect(() => {
@@ -645,6 +659,22 @@ export function PlayersPanel({ admin, emit }: any) {
       </Card>
 
       <div className="neu overflow-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+            {listedPlayers.length} player{listedPlayers.length === 1 ? "" : "s"}
+          </p>
+          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+            Sort by
+            <select
+              className="field py-1 text-sm"
+              value={listSort}
+              onChange={(e) => setListSort(e.target.value === "category" ? "category" : "name")}
+            >
+              <option value="name">Name</option>
+              <option value="category">Category</option>
+            </select>
+          </label>
+        </div>
         <table className="w-full text-sm">
           <thead style={{ color: "var(--muted)" }}>
             <tr>
@@ -652,11 +682,28 @@ export function PlayersPanel({ admin, emit }: any) {
               {(isCricket
                 ? ["Photo", "Name", "ACPL stats", "Sport", "Type", "Category", "Base", "Team", "Tournaments", ""]
                 : ["Photo", "Name", "ACPL stats", "Sport", "Category", "Base", "Team", "Tournaments", ""]
-              ).map((h, i) => (
-                <th key={`${h || "actions"}-${i}`} className="px-4 py-3 text-left">
-                  {h}
-                </th>
-              ))}
+              ).map((h, i) => {
+                const sortable = h === "Name" || h === "Category";
+                const active =
+                  (h === "Name" && listSort === "name") || (h === "Category" && listSort === "category");
+                return (
+                  <th key={`${h || "actions"}-${i}`} className="px-4 py-3 text-left">
+                    {sortable ? (
+                      <button
+                        type="button"
+                        className="font-semibold uppercase tracking-wider"
+                        style={{ color: active ? "var(--accent)" : "inherit" }}
+                        onClick={() => setListSort(h === "Category" ? "category" : "name")}
+                      >
+                        {h}
+                        {active ? " ↓" : ""}
+                      </button>
+                    ) : (
+                      h
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -1114,7 +1161,7 @@ export function AuctionsPanel({ admin, emit }: any) {
         sequence,
         timerSeconds,
         teamIds,
-        playerIds: playerIds.length ? playerIds : poolPlayers.map((p: any) => p.id),
+        playerIds,
         increments: parseIncrements(),
         minByCategory: {},
         maxByBasePrice: Object.fromEntries(
@@ -1328,20 +1375,20 @@ export function AuctionsPanel({ admin, emit }: any) {
         <div className="md:col-span-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] uppercase" style={{ color: "var(--muted)" }}>
-              Players in pool ({playerIds.length || poolPlayers.length})
+              Players in pool ({playerIds.length} of {poolPlayers.length} selected)
             </p>
             <Button onClick={() => setPlayerIds(poolPlayers.map((p: any) => p.id))}>Select all</Button>
+            <Button onClick={() => setPlayerIds([])}>Unselect all</Button>
           </div>
           <div className="flex flex-wrap gap-1">
             {poolPlayers.map((p: any) => (
               <button
                 key={p.id}
-                className={`btn px-2 py-1 text-xs ${
-                  (playerIds.length ? playerIds : poolPlayers.map((x: any) => x.id)).includes(p.id) ? "is-pressed" : ""
-                }`}
+                className={`btn px-2 py-1 text-xs ${playerIds.includes(p.id) ? "is-pressed" : ""}`}
                 onClick={() => {
-                  const cur = playerIds.length ? playerIds : poolPlayers.map((x: any) => x.id);
-                  setPlayerIds(cur.includes(p.id) ? cur.filter((x: string) => x !== p.id) : [...cur, p.id]);
+                  setPlayerIds(
+                    playerIds.includes(p.id) ? playerIds.filter((x: string) => x !== p.id) : [...playerIds, p.id]
+                  );
                 }}
               >
                 {p.name} · {inr(p.basePrice)}

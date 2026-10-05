@@ -29,6 +29,43 @@ export function Confetti({ show }: { show: boolean }) {
   );
 }
 
+function TigerBat({ sad = false }: { sad?: boolean }) {
+  return (
+    <svg viewBox="0 0 200 160" className="tiger-svg h-36 w-44" aria-hidden>
+      <ellipse cx="100" cy="118" rx="54" ry="22" fill="#f59e0b" opacity="0.25" />
+      <g className={sad ? "tiger-sad" : "tiger-sold"}>
+        <ellipse cx="100" cy="95" rx="42" ry="36" fill="#f59e0b" />
+        <path d="M70 80 Q100 55 130 80" fill="#fbbf24" />
+        <circle cx="82" cy="88" r="6" fill="#111" />
+        <circle cx="118" cy="88" r="6" fill="#111" />
+        {sad ? (
+          <path d="M88 112 Q100 104 112 112" stroke="#7c2d12" strokeWidth="3" fill="none" strokeLinecap="round" />
+        ) : (
+          <path d="M88 108 Q100 118 112 108" stroke="#7c2d12" strokeWidth="3" fill="none" strokeLinecap="round" />
+        )}
+        <path d="M100 94 l0 10" stroke="#7c2d12" strokeWidth="3" />
+        <path d="M62 70 L48 48 L70 66 Z" fill="#f59e0b" stroke="#b45309" />
+        <path d="M138 70 L152 48 L130 66 Z" fill="#f59e0b" stroke="#b45309" />
+        <rect x="128" y="108" width="28" height="14" rx="4" fill="#e2e8f0" stroke="#64748b" />
+        <rect x="148" y="102" width="10" height="26" rx="3" fill="#94a3b8" />
+        <rect x="44" y="108" width="28" height="14" rx="4" fill="#e2e8f0" stroke="#64748b" />
+        {!sad && <path d="M155 95 L175 70" stroke="#334155" strokeWidth="4" strokeLinecap="round" />}
+        {sad && (
+          <>
+            <g className="stumps">
+              <rect x="168" y="70" width="4" height="40" fill="#78350f" />
+              <rect x="176" y="70" width="4" height="40" fill="#78350f" />
+              <rect x="184" y="70" width="4" height="40" fill="#78350f" />
+              <rect x="166" y="68" width="24" height="3" fill="#fef3c7" className="bails" />
+            </g>
+            <circle cx="160" cy="55" r="6" fill="#fff" className="ball-miss" />
+          </>
+        )}
+      </g>
+    </svg>
+  );
+}
+
 export function SoldOverlay({
   show,
   team,
@@ -45,25 +82,47 @@ export function SoldOverlay({
       onClick={onDismiss}
     >
       <div
-        className="relative flex min-h-[280px] w-[min(90vw,520px)] flex-col items-center justify-center rounded-3xl p-10 text-center shadow-2xl"
+        className="relative flex min-h-[300px] w-[min(92vw,560px)] flex-col items-center justify-center rounded-3xl p-8 text-center shadow-2xl"
         style={{
-          background: `linear-gradient(160deg, ${team?.color || "#0284C7"} 0%, #fff 55%)`
+          background: `linear-gradient(160deg, ${team?.color || "#0284C7"} 0%, #fff7ed 55%, #fff 100%)`
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <TigerBat />
+        <p className="mt-2 text-sm font-semibold uppercase tracking-[0.35em] text-turf">Hammer down</p>
+        <div className="sold-stamp mt-3 border-4 border-crimson px-6 py-2 font-display text-6xl text-crimson">SOLD</div>
+        <p className="mt-4 font-display text-3xl" style={{ color: team?.color || "var(--turf)" }}>
+          to {team?.name || "—"}
+        </p>
         {team?.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.logo} alt="" className="mb-3 h-24 w-24 rounded-full object-cover ring-4 ring-gold" />
-        ) : (
-          <div className="mb-3 flex h-24 w-24 items-center justify-center rounded-full bg-white font-display text-4xl ring-4 ring-gold">
-            {(team?.name || "AV").slice(0, 2)}
-          </div>
-        )}
-        <p className="text-sm font-semibold uppercase tracking-[0.4em] text-turf">{team?.name}</p>
-        <div className="sold-stamp mt-4 border-4 border-crimson px-8 py-2 font-display text-7xl text-crimson">SOLD</div>
-        <p className="mt-4 text-sm" style={{ color: "#334155" }}>
-          Closes in 4 seconds · click outside to return
+          <img src={team.logo} alt="" className="mt-3 h-16 w-16 rounded-full object-cover ring-4 ring-gold" />
+        ) : null}
+        <p className="mt-4 text-xs" style={{ color: "#64748b" }}>
+          Closes in a few seconds · click outside to return
         </p>
+      </div>
+    </div>
+  );
+}
+
+export function UnsoldOverlay({ show, onDismiss }: { show: boolean; onDismiss?: () => void }) {
+  if (!show) return null;
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={onDismiss}
+    >
+      <div
+        className="relative flex min-h-[300px] w-[min(92vw,560px)] flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-8 text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <TigerBat sad />
+        <div className="unsold-stamp mt-3 border-4 border-amber-200/80 px-6 py-2 font-display text-6xl text-amber-100">
+          UNSOLD
+        </div>
+        <p className="mt-4 text-sm text-slate-300">Bowled over — walks back to the pavilion</p>
+        <p className="mt-3 text-xs text-slate-500">Closes in a few seconds · click outside to return</p>
       </div>
     </div>
   );

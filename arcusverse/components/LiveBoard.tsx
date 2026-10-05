@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
-import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay } from "@/components/AuctionBits";
+import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay, UnsoldOverlay } from "@/components/AuctionBits";
 import { useApp } from "@/components/Providers";
 import { inr, beep, crToLakhs, lakhsToCr } from "@/lib/format";
 
@@ -11,33 +11,42 @@ type Mode = "auctioneer" | "owner" | "spectator";
 
 function rosterSize(stats: any) {
   if (stats?.rosterCount != null) return Number(stats.rosterCount);
-  if (stats?.rosterCount != null) return Number(stats.rosterCount);
   return (stats?.roster || []).length;
 }
 
-function maxBidForDenom(stats: any, denom: number, auction: any) {
+function teamMaxBid(stats: any, denom: number, auction: any) {
+  if (stats?.maxBidMode === "baseQuotas" && stats?.maxBid != null) return Number(stats.maxBid);
   const row = (stats?.maxBidByDenom || []).find((d: any) => Number(d.purse) === Number(denom));
-  if (row) return row.maxBid;
+  if (row) return Number(row.maxBid);
+  if (stats?.maxBid != null) return Number(stats.maxBid);
   const empty = Math.max(0, Number(auction.maxSquad || 0) - rosterSize(stats));
   if (empty <= 0) return 0;
   return Math.max(0, Number(stats?.purseLeft || 0) - Math.max(0, empty - 1) * Number(denom || 0));
 }
 
-function RemainingToBuy({ stats }: { stats: any }) {
-  const bases = (stats?.baseSlots || []).filter((b: any) => b.cap != null);
-  if (!bases.length) return null;
+function teamBlocked(stats: any, minNext: number, holding: boolean, maxSquad: number) {
+  if (!stats) return true;
+  if (holding) return false;
+  if (stats.atBaseLimit) return true;
+  if (rosterSize(stats) >= Number(maxSquad || 0) && Number(maxSquad || 0) > 0) return true;
+  if (stats.cannotBidFurther) return true;
+  if (minNext > Number(stats.maxBid || 0) + 1e-9) return true;
+  if (minNext > Number(stats.purseLeft || 0) + 1e-9) return true;
+  return false;
+}
+
+function RemainingByBase({ rows }: { rows: any[] }) {
+  if (!rows?.length) return null;
   return (
     <div className="mt-2">
       <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-        Remaining to buy
+        Remaining by base
       </p>
       <ul className="mt-1 space-y-0.5 text-xs">
-        {bases.map((b: any) => (
-          <li key={b.basePrice} className="flex justify-between gap-2">
-            <span>{inr(b.basePrice)}</span>
-            <span style={{ color: "var(--muted)" }}>
-              {b.owned}/{b.cap} · {b.left} left
-            </span>
+        {rows.map((b: any) => (
+          <li key={String(b.basePrice)} className="flex justify-between gap-2">
+            <span>{b.basePrice == null ? "Unset" : inr(b.basePrice)}</span>
+            <span style={{ color: "var(--muted)" }}>{b.count}</span>
           </li>
         ))}
       </ul>
@@ -45,21 +54,43 @@ function RemainingToBuy({ stats }: { stats: any }) {
   );
 }
 
-function TeamIntel({ team, auction, denom }: { team: any; auction: any; denom: number }) {
+function TeamIntel({
+  team,
+  auction,
+  denom,
+  minNext,
+  holdingTeamId,
+  expanded,
+  onToggle
+}: {
+  team: any;
+  auction: any;
+  denom: number;
+  minNext: number;
+  holdingTeamId?: string | null;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const s = team.stats || {};
-  const maxBid = maxBidForDenom(s, denom, auction);
+  const maxBid = teamMaxBid(s, denom, auction);
   const rosterCount = rosterSize(s);
   const roster = s.roster || [];
-  const bought = (s.categoryBought || s.categoryBought || []).filter((c: any) => c.count > 0);
+  const holding = holdingTeamId === team.id;
+  const blocked = teamBlocked(s, minNext, holding, Number(auction.maxSquad || 0));
+  const bases = (s.baseSlots || []).filter((b: any) => b.cap != null);
+
   return (
-    <div
-      className="h-fit min-w-[220px] overflow-hidden rounded-2xl p-4"
+    <button
+      type="button"
+      onClick={onToggle}
+      className="relative h-fit min-w-[220px] overflow-hidden rounded-2xl p-4 text-left"
       style={{
         background: "var(--neu-bg)",
         boxShadow: "8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light)",
         borderTop: `4px solid ${team.color || "var(--turf)"}`
       }}
     >
+      {blocked ? <div className="team-blocked-overlay">Cannot bid further</div> : null}
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-display text-2xl leading-tight" style={{ color: team.color }}>
           {team.name}
@@ -84,54 +115,45 @@ function TeamIntel({ team, auction, denom }: { team: any; auction: any; denom: n
         </div>
       </div>
       <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-        Squad {rosterCount}/{auction.maxSquad}
+        Squad {rosterCount}/{auction.maxSquad} · tap for details
       </p>
-      {s.atBaseLimit ? (
-        <p className="mt-2 text-xs font-semibold" style={{ color: "var(--crimson)" }}>
-          Cannot bid — max players at this base price
-          {s.baseCap != null ? ` (${s.baseCount}/${s.baseCap})` : ""}
-        </p>
-      ) : null}
-      <RemainingToBuy stats={s} />
-      <ul className="mt-2 space-y-0.5 text-sm">
-        {roster.map((r: any) => (
-          <li key={r.playerId} className="flex justify-between gap-2 py-0.5">
-            <span>
-              {r.playerName || r.name || "Player"}
-              {r.retained ? " (R)" : ""}
-            </span>
-            <span style={{ color: "var(--muted)" }}>{inr(r.soldPrice)}</span>
-          </li>
-        ))}
-        {!roster.length && bought.length === 0 && (
-          <li className="text-xs" style={{ color: "var(--muted)" }}>
-            No players yet
-          </li>
-        )}
-      </ul>
-      {bought.length > 0 && !roster.length && (
-        <div className="mt-2 space-y-1.5">
-          {bought.map((c: any) => (
-            <div key={c.id}>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-turf">
-                {c.name} · {c.count}
-              </p>
-              <ul className="text-sm">
-                {(c.players || []).map((p: any) => (
-                  <li key={p.id} className="flex justify-between gap-2 py-0.5">
-                    <span>
-                      {p.name}
-                      {p.retained ? " (R)" : ""}
-                    </span>
-                    <span style={{ color: "var(--muted)" }}>{inr(p.soldPrice)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+      {expanded ? (
+        <div className="mt-3 space-y-2 border-t border-black/5 pt-2" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-turf">Base slots</p>
+          <ul className="space-y-0.5 text-xs">
+            {bases.map((b: any) => (
+              <li key={b.basePrice} className="flex justify-between gap-2">
+                <span>{inr(b.basePrice)}</span>
+                <span style={{ color: "var(--muted)" }}>
+                  {b.owned}/{b.cap} · {b.left} left
+                </span>
+              </li>
+            ))}
+            {!bases.length && <li style={{ color: "var(--muted)" }}>No base caps configured</li>}
+          </ul>
+          <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-turf">Players bought</p>
+          <ul className="max-h-40 space-y-0.5 overflow-auto text-sm">
+            {roster.map((r: any) => (
+              <li key={r.playerId} className="flex justify-between gap-2 py-0.5">
+                <span>
+                  {r.playerName || "Player"}
+                  {r.retained ? " (R)" : ""}
+                  <span className="ml-1 text-[10px]" style={{ color: "var(--muted)" }}>
+                    {inr(r.basePrice)}
+                  </span>
+                </span>
+                <span style={{ color: "var(--muted)" }}>{inr(r.soldPrice)}</span>
+              </li>
+            ))}
+            {!roster.length && (
+              <li className="text-xs" style={{ color: "var(--muted)" }}>
+                No players yet
+              </li>
+            )}
+          </ul>
         </div>
-      )}
-    </div>
+      ) : null}
+    </button>
   );
 }
 
@@ -186,27 +208,40 @@ export function LiveBoard({
   const [openTeams, setOpenTeams] = useState<Record<string, boolean>>({});
   const [outbid, setOutbid] = useState(false);
   const [soldStamp, setSoldStamp] = useState<number | null>(null);
+  const [unsoldStamp, setUnsoldStamp] = useState<number | null>(null);
+  const [maxBidPopup, setMaxBidPopup] = useState(false);
   const [endPrompt, setEndPrompt] = useState(false);
   const [endPromptSeen, setEndPromptSeen] = useState(false);
-  const denoms: number[] = auction.denominators?.length ? auction.denominators.map(Number) : [auction.purse];
+  const configuredDenoms: number[] = auction.denominators?.length ? auction.denominators.map(Number) : [auction.purse];
+  const playerBase = Number(live?.currentPlayer?.basePrice) || 0;
+  const denoms = useMemo(() => {
+    const set = new Set<number>(configuredDenoms.filter((n) => Number.isFinite(n) && n > 0));
+    if (playerBase > 0) set.add(playerBase);
+    return [...set].sort((a, b) => a - b);
+  }, [configuredDenoms.join(","), playerBase]);
   const [denom, setDenom] = useState<number>(denoms[0]);
 
   const aid = auctionId || auction?.id;
   const teams = state.teams || [];
-  const mineMaxBid = mine ? maxBidForDenom(mine.stats, denom, auction) : 0;
+  const mineMaxBid = mine ? teamMaxBid(mine.stats, denom, auction) : 0;
+
+  const minNextBid = useMemo(() => {
+    const cur = currentBid || 0;
+    const incs = auction.increments || [];
+    const stepRow = [...incs]
+      .sort((a: any, b: any) => (a.from ?? 0) - (b.from ?? 0))
+      .find((r: any) => cur >= (r.from ?? 0) && cur < (r.to ?? 999999999));
+    const step = stepRow?.step ?? 5;
+    return lastBidTeamId ? cur + step : Math.max(cur, live?.currentPlayer?.basePrice || 0);
+  }, [currentBid, lastBidTeamId, live?.currentPlayer, auction.increments]);
 
   const teamsEligibleForLot = useMemo(() => {
-    const maxSquad = Number(auction.maxSquad || 0);
-    return teams.filter((t: any) => {
-      if (t.stats?.atBaseLimit) return false;
-      if (maxSquad > 0 && rosterSize(t.stats) >= maxSquad) return false;
-      return true;
-    });
-  }, [teams, auction.maxSquad, live?.currentPlayer?.id]);
+    return teams.filter((t: any) => !teamBlocked(t.stats, minNextBid, lastBidTeamId === t.id, Number(auction.maxSquad || 0)));
+  }, [teams, auction.maxSquad, live?.currentPlayer?.id, minNextBid, lastBidTeamId, currentBid]);
 
-  const teamsBlockedAtBase = useMemo(
-    () => teams.filter((t: any) => t.stats?.atBaseLimit),
-    [teams, live?.currentPlayer?.id]
+  const teamsBlockedFurther = useMemo(
+    () => teams.filter((t: any) => teamBlocked(t.stats, minNextBid, lastBidTeamId === t.id, Number(auction.maxSquad || 0))),
+    [teams, auction.maxSquad, live?.currentPlayer?.id, minNextBid, lastBidTeamId, currentBid]
   );
 
   useEffect(() => {
@@ -214,8 +249,9 @@ export function LiveBoard({
   }, [auction?.sport, setSport]);
 
   useEffect(() => {
-    if (!denoms.includes(denom)) setDenom(denoms[0]);
-  }, [denoms.join(","), denom]);
+    if (playerBase > 0) setDenom(playerBase);
+    else if (!denoms.includes(denom)) setDenom(denoms[0]);
+  }, [live?.currentPlayer?.id, playerBase]);
 
   useEffect(() => {
     const at = celebration?.at;
@@ -229,9 +265,10 @@ export function LiveBoard({
   }, [celebration?.at]);
 
   useEffect(() => {
-    const preferred = lastBidTeamId && teamsEligibleForLot.some((t: any) => t.id === lastBidTeamId)
-      ? lastBidTeamId
-      : teamsEligibleForLot[0]?.id || "";
+    const preferred =
+      lastBidTeamId && teamsEligibleForLot.some((t: any) => t.id === lastBidTeamId)
+        ? lastBidTeamId
+        : teamsEligibleForLot[0]?.id || "";
     setSoldTeamId(preferred);
     setBidTeamId(preferred);
     setSoldPrice(currentBid ? String(lakhsToCr(currentBid)) : "");
@@ -265,22 +302,28 @@ export function LiveBoard({
     }
   }, [currentBid, lastBidTeamId, mode, teamId]);
 
+  useEffect(() => {
+    if (mode !== "owner" || !mine || !live?.currentPlayer || live?.phase !== "bidding") {
+      setMaxBidPopup(false);
+      return;
+    }
+    const holding = lastBidTeamId === teamId;
+    const blocked = teamBlocked(mine.stats, minNextBid, holding, Number(auction.maxSquad || 0));
+    setMaxBidPopup(blocked && !holding);
+  }, [mode, mine, live?.currentPlayer?.id, live?.phase, minNextBid, lastBidTeamId, teamId, auction.maxSquad, currentBid]);
+
   const paddles = useMemo(() => {
     const cur = currentBid || 0;
-    const incs = auction.increments || auction.increments || [];
+    const incs = auction.increments || [];
     const stepRow = [...incs]
-      .sort((a: any, b: any) => (a.from ?? a.from) - (b.from ?? b.from))
-      .find((r: any) => {
-        const from = r.from ?? r.from;
-        const to = r.to ?? r.to;
-        return cur >= from && cur < to;
-      });
-    const step = stepRow?.step ?? stepRow?.step ?? 5;
+      .sort((a: any, b: any) => (a.from ?? 0) - (b.from ?? 0))
+      .find((r: any) => cur >= (r.from ?? 0) && cur < (r.to ?? 999999999));
+    const step = stepRow?.step ?? 5;
     const next = lastBidTeamId ? cur + step : Math.max(cur, live?.currentPlayer?.basePrice || 0);
     const cap =
       mode === "auctioneer"
-        ? maxBidForDenom(teams.find((t: any) => t.id === bidTeamId)?.stats, denom, auction)
-        : maxBidForDenom(mine?.stats, denom, auction);
+        ? teamMaxBid(teams.find((t: any) => t.id === bidTeamId)?.stats, denom, auction)
+        : teamMaxBid(mine?.stats, denom, auction);
     const purse =
       mode === "auctioneer"
         ? Number(teams.find((t: any) => t.id === bidTeamId)?.stats?.purseLeft ?? Infinity)
@@ -302,21 +345,19 @@ export function LiveBoard({
     lastBidTeamId,
     live?.currentPlayer,
     auction.increments,
-    auction.increments,
     mine?.stats,
-    mine?.stats?.purseLeft,
     mode,
     bidTeamId,
     teams,
     denom,
-    auction.maxSquad
+    auction
   ]);
 
   const soldLakhs = () => (soldPrice === "" ? currentBid : crToLakhs(soldPrice));
 
   const refuseOverCap = (team: any, priceLakhs: number, label: string) => {
     const purse = Number(team?.stats?.purseLeft ?? 0);
-    const cap = maxBidForDenom(team?.stats, denom, auction);
+    const cap = teamMaxBid(team?.stats, denom, auction);
     if (priceLakhs > purse + 1e-9) {
       throw new Error(`${label} exceeds remaining purse for ${team?.name || "this team"} (${inr(purse)})`);
     }
@@ -333,6 +374,10 @@ export function LiveBoard({
         const price = soldLakhs();
         refuseOverCap(team, price, "Sold price");
         payload = { teamId: payload.teamId || soldTeamId, price };
+      }
+      if (event === "unsold") {
+        setUnsoldStamp(Date.now());
+        setTimeout(() => setUnsoldStamp(null), 4000);
       }
       const res: any = await emit(event, { auctionId: aid, ...payload });
       if (res?.public) onPublic?.(res.public);
@@ -372,15 +417,6 @@ export function LiveBoard({
   };
 
   const holding = lastBidTeamId === teamId;
-  const minNextBid = useMemo(() => {
-    const cur = currentBid || 0;
-    const incs = auction.increments || [];
-    const stepRow = [...incs]
-      .sort((a: any, b: any) => (a.from ?? 0) - (b.from ?? 0))
-      .find((r: any) => cur >= (r.from ?? 0) && cur < (r.to ?? 999999999));
-    const step = stepRow?.step ?? 5;
-    return lastBidTeamId ? cur + step : Math.max(cur, live?.currentPlayer?.basePrice || 0);
-  }, [currentBid, lastBidTeamId, live?.currentPlayer, auction.increments]);
 
   const canBid =
     mode === "owner" &&
@@ -389,8 +425,7 @@ export function LiveBoard({
     !paused &&
     auction.status === "live" &&
     !!mine &&
-    !mine.stats?.atBaseLimit &&
-    rosterSize(mine.stats) < Number(auction.maxSquad || 0) &&
+    !teamBlocked(mine.stats, minNextBid, false, Number(auction.maxSquad || 0)) &&
     Number(mine.stats?.purseLeft || 0) >= minNextBid &&
     mineMaxBid >= minNextBid;
 
@@ -415,6 +450,23 @@ export function LiveBoard({
     <div className="space-y-4">
       <Confetti show={!!soldStamp} />
       <SoldOverlay show={!!soldStamp} team={soldTeam} onDismiss={() => setSoldStamp(null)} />
+      <UnsoldOverlay show={!!unsoldStamp} onDismiss={() => setUnsoldStamp(null)} />
+      {mode === "owner" && maxBidPopup && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
+          <Card className="relative z-[71] max-w-md space-y-3 p-6 text-center">
+            <h2 className="font-display text-3xl">Maximum bid reached</h2>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              You&apos;ve reached maximum bid count. Cannot bid further on this player.
+            </p>
+            <p className="text-sm">
+              Your max for this lot: <strong>{inr(mineMaxBid)}</strong>
+            </p>
+            <Button variant="turf" onClick={() => setMaxBidPopup(false)}>
+              OK
+            </Button>
+          </Card>
+        </div>
+      )}
 
       {mode === "auctioneer" && (
         <div className="flex flex-wrap gap-2">
@@ -488,6 +540,9 @@ export function LiveBoard({
               ))}
               {!live?.unsoldPlayers?.length && <li className="text-xs text-[var(--muted)]">None yet</li>}
             </ul>
+            {(mode === "auctioneer" || mode === "spectator") && (
+              <RemainingByBase rows={live?.remainingByBase || []} />
+            )}
           </Card>
         )}
 
@@ -510,10 +565,9 @@ export function LiveBoard({
               {mode === "auctioneer" && (
                 <div className="mt-4 space-y-3 border-t border-[color-mix(in_srgb,var(--ink)_10%,transparent)] pt-3">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-turf">Call a bid (shown live)</p>
-                  {teamsBlockedAtBase.length > 0 && live?.currentPlayer ? (
+                  {teamsBlockedFurther.length > 0 && live?.currentPlayer ? (
                     <p className="text-sm font-semibold" style={{ color: "var(--crimson)" }}>
-                      Cannot bid for {inr(live.currentPlayer.basePrice)} base:{" "}
-                      {teamsBlockedAtBase.map((t: any) => t.name).join(", ")}
+                      Cannot bid further: {teamsBlockedFurther.map((t: any) => t.name).join(", ")}
                     </p>
                   ) : null}
                   <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
@@ -579,7 +633,7 @@ export function LiveBoard({
                           (mine.stats.baseCap != null
                             ? ` (${mine.stats.baseCount}/${mine.stats.baseCap}).`
                             : ".")
-                        : "You cannot bid on this lot (purse, squad, or category limit)."}
+                        : "You've reached maximum bid count. Cannot bid further."}
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-2">
@@ -597,50 +651,42 @@ export function LiveBoard({
         </div>
 
         <div className="space-y-3">
-          {mode === "auctioneer" && (
+          {(mode === "auctioneer" || mode === "owner" || mode === "spectator") && (
             <Card className="h-fit p-4">
               <label className="block text-[11px] uppercase tracking-widest text-turf">
-                Max bid denominator
+                Max bid using (auto: player base)
                 <select className="field mt-1" value={String(denom)} onChange={(e) => setDenom(Number(e.target.value))}>
                   {denoms.map((d) => (
                     <option key={d} value={d}>
                       {inr(d)}
+                      {playerBase > 0 && d === playerBase ? " · lot base" : ""}
                     </option>
                   ))}
                 </select>
               </label>
-            </Card>
-          )}
-          {mode === "owner" && mine && (
-            <Card className="h-fit p-4">
-              <h3 className="font-display text-2xl" style={{ color: mine.color }}>
-                {mine.name}
-              </h3>
-              <PurseMeter spent={mine.stats?.purseSpent || 0} total={auction.purse} />
-              <p className="mt-2 text-sm">
-                Squad {rosterSize(mine.stats)}/{auction.maxSquad} · max bid {inr(mineMaxBid)}
-              </p>
-              <RemainingToBuy stats={mine.stats} />
-              <label className="mt-2 block text-[11px] uppercase tracking-widest text-turf">
-                Max bid using
-                <select className="field mt-1" value={String(denom)} onChange={(e) => setDenom(Number(e.target.value))}>
-                  {denoms.map((d) => (
-                    <option key={d} value={d}>
-                      {inr(d)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {mode === "owner" && mine ? (
+                <>
+                  <h3 className="font-display mt-3 text-2xl" style={{ color: mine.color }}>
+                    {mine.name}
+                  </h3>
+                  <PurseMeter spent={mine.stats?.purseSpent || 0} total={auction.purse} />
+                  <p className="mt-2 text-sm">
+                    Squad {rosterSize(mine.stats)}/{auction.maxSquad} · max bid {inr(mineMaxBid)}
+                  </p>
+                </>
+              ) : null}
+              {mode === "auctioneer" ? <RemainingByBase rows={live?.remainingByBase || []} /> : null}
             </Card>
           )}
           {mode !== "owner" && (
             <Card className="h-fit max-h-[40vh] overflow-auto p-4">
-              <h3 className="font-display text-xl">Pool · {live?.remainingCount ?? live?.remainingCount ?? 0}</h3>
+              <h3 className="font-display text-xl">Pool · {live?.remainingCount ?? 0}</h3>
+              <RemainingByBase rows={live?.remainingByBase || []} />
               <ul className="mt-2 space-y-1 text-sm">
-                {(live?.remainingPlayers || live?.remainingPlayers || []).slice(0, 30).map((p: any) => (
+                {(live?.remainingPlayers || []).slice(0, 30).map((p: any) => (
                   <li key={p.id} className="flex justify-between gap-2">
                     <span>{p.name}</span>
-                    <span className="text-[var(--muted)]">{p.role || p.categoryName}</span>
+                    <span className="text-[var(--muted)]">{inr(p.basePrice)}</span>
                   </li>
                 ))}
               </ul>
@@ -652,7 +698,16 @@ export function LiveBoard({
       {(mode === "owner" || mode === "auctioneer") && (
         <div className="grid w-full items-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
           {(mode === "auctioneer" ? teams : rivals).map((t: any) => (
-            <TeamIntel key={t.id} team={t} auction={auction} denom={denom} />
+            <TeamIntel
+              key={t.id}
+              team={t}
+              auction={auction}
+              denom={denom}
+              minNext={minNextBid}
+              holdingTeamId={lastBidTeamId}
+              expanded={!!openTeams[t.id]}
+              onToggle={() => setOpenTeams((o) => ({ ...o, [t.id]: !o[t.id] }))}
+            />
           ))}
         </div>
       )}
@@ -660,33 +715,16 @@ export function LiveBoard({
       {mode === "spectator" && (
         <div className="grid items-start gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
           {teams.map((t: any) => (
-            <Card key={t.id} className="h-fit p-3">
-              <button className="w-full text-left" onClick={() => setOpenTeams((o) => ({ ...o, [t.id]: !o[t.id] }))}>
-                <h3 className="font-display text-2xl leading-tight" style={{ color: t.color }}>
-                  {t.name}
-                </h3>
-              </button>
-              <PurseMeter spent={t.stats?.purseSpent || 0} total={auction.purse} />
-              <p className="mt-1 text-xs">
-                {t.stats?.rosterCount ?? t.stats?.rosterCount}/{auction.maxSquad ?? auction.maxSquad} · max {inr(t.stats?.maxBid)}
-              </p>
-              <RemainingToBuy stats={t.stats} />
-              {openTeams[t.id] && (
-                <ul className="mt-2 space-y-1 text-xs">
-                  {(t.stats?.roster || []).map((r: any) => {
-                    const p = state.players.find((x: any) => x.id === r.playerId);
-                    return (
-                      <li key={r.playerId} className="flex justify-between gap-2">
-                        <span>
-                          {p?.name} {r.retained ? "★" : ""}
-                        </span>
-                        <span>{inr(r.soldPrice)}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </Card>
+            <TeamIntel
+              key={t.id}
+              team={t}
+              auction={auction}
+              denom={denom}
+              minNext={minNextBid}
+              holdingTeamId={lastBidTeamId}
+              expanded={!!openTeams[t.id]}
+              onToggle={() => setOpenTeams((o) => ({ ...o, [t.id]: !o[t.id] }))}
+            />
           ))}
         </div>
       )}

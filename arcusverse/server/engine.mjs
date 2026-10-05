@@ -45,6 +45,34 @@ export function nextMaxBid(purseLeft, rosterCount, maxSquad, denom) {
   return Math.max(0, Math.round((Number(purseLeft || 0) - reserve) * 10) / 10);
 }
 
+/**
+ * Max bid with base-price squad quotas (user formula):
+ * purseLeft - Σ(need[b] × b) for every capped base, where need = max(0, cap − owned).
+ * Example: 100 − (2×10 + 4×2 + 4×5) = 52 when bidding on a 5 Cr player.
+ * Falls back to denom-based nextMaxBid when no base caps are configured.
+ */
+export function maxBidFromBaseQuotas(purseLeft, baseSlots, rosterCount, maxSquad, fallbackDenom) {
+  const slots = (baseSlots || []).filter((b) => b && b.cap != null && Number.isFinite(Number(b.cap)));
+  if (!slots.length) {
+    return nextMaxBid(purseLeft, rosterCount, maxSquad, fallbackDenom);
+  }
+  let reserve = 0;
+  let cappedNeed = 0;
+  for (const b of slots) {
+    const need = Math.max(0, Number(b.cap) - Number(b.owned || 0));
+    reserve += need * Number(b.basePrice);
+    cappedNeed += need;
+  }
+  const empty = Math.max(0, Number(maxSquad || 0) - Number(rosterCount || 0));
+  const uncovered = Math.max(0, empty - cappedNeed);
+  if (uncovered > 0) {
+    const bases = slots.map((s) => Number(s.basePrice)).filter((n) => Number.isFinite(n) && n > 0);
+    const minBase = bases.length ? Math.min(...bases) : Number(fallbackDenom) || 0;
+    reserve += uncovered * minBase;
+  }
+  return Math.max(0, Math.round((Number(purseLeft || 0) - reserve) * 10) / 10);
+}
+
 export function auctionTeamIds(store, auction) {
   const cat = auction.categoryId;
   const inCat = (id) => {
@@ -122,32 +150,6 @@ export function teamLiveStats(store, auction, teamId) {
   const atBaseLimit =
     current && baseCap != null && countAtBase(current.basePrice) >= Number(baseCap);
 
-  const denoms = auction.denominators?.length ? auction.denominators : [auction.purse];
-  const maxBidByDenom = denoms.map((d) => ({
-    purse: d,
-    maxBid: nextMaxBid(purseLeft, roster.length, auction.maxSquad, d)
-  }));
-  const denomNums = denoms.map(Number).filter((n) => n > 0);
-  const canonicalDenom = denomNums.length ? Math.max(...denomNums) : Number(auction.purse) || 0;
-  const maxBid = nextMaxBid(purseLeft, roster.length, auction.maxSquad, canonicalDenom);
-
-  const minNext = current
-    ? nextBidAmount(live?.currentBid || 0, current.basePrice, auction.increments, Boolean(live?.lastBidTeamId))
-    : 0;
-
-  const categoryBought = Object.keys(ownedRoles).map((role) => ({
-    id: role,
-    name: role,
-    count: ownedRoles[role],
-    players: roster
-      .map((row) => {
-        const pl = store.players.find((p) => p.id === row.playerId);
-        if (!pl || (pl.role || "Player") !== role) return null;
-        return { ...pl, basePrice: row.basePrice, soldPrice: row.soldPrice, retained: !!row.retained };
-      })
-      .filter(Boolean)
-  }));
-
   const baseKeys = new Set();
   for (const k of Object.keys(auction.maxByBasePrice || {})) {
     if (Number.isFinite(Number(k))) baseKeys.add(String(Number(k)));
@@ -170,6 +172,41 @@ export function teamLiveStats(store, auction, teamId) {
     })
     .filter((b) => b.cap != null);
 
+  const denoms = auction.denominators?.length ? auction.denominators : [auction.purse];
+  const denomNums = denoms.map(Number).filter((n) => n > 0);
+  const canonicalDenom = denomNums.length ? Math.max(...denomNums) : Number(auction.purse) || 0;
+  const hasBaseQuotas = baseSlots.length > 0;
+  const maxBid = hasBaseQuotas
+    ? maxBidFromBaseQuotas(purseLeft, baseSlots, roster.length, auction.maxSquad, canonicalDenom)
+    : nextMaxBid(purseLeft, roster.length, auction.maxSquad, canonicalDenom);
+  const maxBidByDenom = denoms.map((d) => ({
+    purse: d,
+    maxBid: hasBaseQuotas
+      ? maxBid
+      : nextMaxBid(purseLeft, roster.length, auction.maxSquad, d)
+  }));
+
+  const minNext = current
+    ? nextBidAmount(live?.currentBid || 0, current.basePrice, auction.increments, Boolean(live?.lastBidTeamId))
+    : 0;
+
+  const categoryBought = Object.keys(ownedRoles).map((role) => ({
+    id: role,
+    name: role,
+    count: ownedRoles[role],
+    players: roster
+      .map((row) => {
+        const pl = store.players.find((p) => p.id === row.playerId);
+        if (!pl || (pl.role || "Player") !== role) return null;
+        return { ...pl, basePrice: row.basePrice, soldPrice: row.soldPrice, retained: !!row.retained };
+      })
+      .filter(Boolean)
+  }));
+
+  const squadFull = roster.length >= auction.maxSquad;
+  const cannotAffordNext = Boolean(current) && (purseLeft < minNext - 1e-9 || maxBid < minNext - 1e-9);
+  const cannotBidFurther = Boolean(current) && (atBaseLimit || squadFull || cannotAffordNext);
+
   return {
     teamId,
     rosterCount: roster.length,
@@ -177,7 +214,9 @@ export function teamLiveStats(store, auction, teamId) {
     purseSpent,
     maxBid,
     maxBidByDenom,
+    maxBidMode: hasBaseQuotas ? "baseQuotas" : "denominator",
     atBaseLimit,
+    cannotBidFurther,
     baseCount: current ? countAtBase(current.basePrice) : 0,
     baseCap: baseCap == null ? null : Number(baseCap),
     roster: roster.map((row) => {
@@ -194,8 +233,7 @@ export function teamLiveStats(store, auction, teamId) {
       auction.status === "live" &&
       current &&
       live?.phase === "bidding" &&
-      roster.length < auction.maxSquad &&
-      !atBaseLimit &&
+      !cannotBidFurther &&
       purseLeft >= minNext &&
       maxBid >= minNext
   };
@@ -227,6 +265,30 @@ export function publicState(store, auctionId) {
   const unsoldIds = Object.entries(live?.unsoldPasses || {})
     .filter(([, n]) => n > 0)
     .map(([id]) => id);
+
+  const remainingPoolIds = live
+    ? live.remainingPlayerIds.filter((id) => {
+        const p = store.players.find((x) => x.id === id);
+        return p && !playerLockedToTeam(store, p);
+      })
+    : [];
+  const remainingByBaseMap = new Map();
+  for (const id of remainingPoolIds) {
+    const p = store.players.find((x) => x.id === id);
+    const bp = Number(p?.basePrice);
+    const key = Number.isFinite(bp) ? String(bp) : "unset";
+    remainingByBaseMap.set(key, (remainingByBaseMap.get(key) || 0) + 1);
+  }
+  const remainingByBase = [...remainingByBaseMap.entries()]
+    .map(([k, count]) => ({
+      basePrice: k === "unset" ? null : Number(k),
+      count
+    }))
+    .sort((a, b) => {
+      if (a.basePrice == null) return 1;
+      if (b.basePrice == null) return -1;
+      return a.basePrice - b.basePrice;
+    });
 
   return {
     meta: { updatedAt: store.meta.updatedAt },
@@ -286,6 +348,7 @@ export function publicState(store, auctionId) {
             const p = store.players.find((x) => x.id === id);
             return p && !playerLockedToTeam(store, p) && id !== live.currentPlayerId;
           }).length,
+          remainingByBase,
           soldCount: live.sold.length,
           unsoldPlayers: unsoldIds
             .map((id) => store.players.find((p) => p.id === id))

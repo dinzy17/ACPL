@@ -275,6 +275,9 @@ body {
 .sold-stamp {
   animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.3, 1);
 }
+.unsold-stamp {
+  animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
 @keyframes stamp {
   0% {
     transform: scale(2.2) rotate(-18deg);
@@ -284,6 +287,86 @@ body {
     transform: scale(1) rotate(-12deg);
     opacity: 1;
   }
+}
+
+.tiger-sold {
+  animation: tiger-enter 0.7s ease-out;
+}
+.tiger-sad {
+  animation: tiger-walk 2.4s ease-in-out forwards;
+}
+.tiger-sad .bails {
+  animation: bails-fall 0.6s 0.35s ease-in forwards;
+  transform-origin: center;
+}
+.tiger-sad .ball-miss {
+  animation: ball-past 0.7s ease-out forwards;
+}
+@keyframes tiger-enter {
+  0% {
+    transform: translateX(-40px) scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes tiger-walk {
+  0% {
+    transform: translateX(10px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-28px);
+    opacity: 0.85;
+  }
+}
+@keyframes bails-fall {
+  0% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(18px) rotate(28deg);
+    opacity: 0.2;
+  }
+}
+@keyframes ball-past {
+  0% {
+    transform: translate(-30px, -10px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(20px, 8px);
+    opacity: 0.3;
+  }
+}
+
+.team-blocked-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #0f172a 55%, transparent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .splash-mark {

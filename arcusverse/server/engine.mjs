@@ -93,10 +93,14 @@ export function teamLiveStats(store, auction, teamId) {
     const map = auction.maxByBasePrice || {};
     const n = Number(base);
     for (const c of [String(base), String(n)]) {
-      if (map[c] != null && map[c] !== "") return Number(map[c]);
+      if (map[c] == null || map[c] === "") continue;
+      const cap = Number(map[c]);
+      if (Number.isFinite(cap)) return cap;
     }
     for (const [k, v] of Object.entries(map)) {
-      if (Number(k) === n && v != null && v !== "") return Number(v);
+      if (Number(k) !== n || v == null || v === "") continue;
+      const cap = Number(v);
+      if (Number.isFinite(cap)) return cap;
     }
     return null;
   };

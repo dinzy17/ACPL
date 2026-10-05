@@ -1028,7 +1028,11 @@ export function attachSockets(io, store, urls) {
         for (const [k, v] of Object.entries(p.maxByBasePrice || {})) {
           const key = String(Number(k));
           if (!Number.isFinite(Number(k))) continue;
-          maxByBasePrice[key] = Number(v);
+          // Blank / omitted = no cap for that base price
+          if (v == null || v === "") continue;
+          const n = Number(v);
+          if (!Number.isFinite(n) || n < 0) continue;
+          maxByBasePrice[key] = n;
         }
         const body = {
           name: p.name || "Auction",

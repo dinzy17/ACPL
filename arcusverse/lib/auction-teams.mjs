@@ -15,6 +15,8 @@ export function isMensCategory(registration) {
 /**
  * Group registrations for the Admin → Registration → Auction teams tab.
  * "Not representing a team" includes Men's category players only.
+ * @param {any[]} registrations
+ * @param {{ teamOptions?: string[] }} [opts]
  */
 export function groupRegistrationsByAuctionTeam(registrations, { teamOptions = [] } = {}) {
   const optionOrder = Array.isArray(teamOptions) ? [...teamOptions] : [];

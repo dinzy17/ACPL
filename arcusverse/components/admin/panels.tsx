@@ -1165,7 +1165,13 @@ export function AuctionsPanel({ admin, emit }: any) {
         increments: parseIncrements(),
         minByCategory: {},
         maxByBasePrice: Object.fromEntries(
-          bases.map((b) => [b, Number(maxByBase[b] === "" || maxByBase[b] == null ? 4 : maxByBase[b])])
+          bases.flatMap((b) => {
+            const raw = maxByBase[b];
+            if (raw === "" || raw == null) return [];
+            const n = Number(raw);
+            if (!Number.isFinite(n) || n < 0) return [];
+            return [[b, n]];
+          })
         )
       });
       const saved =
@@ -1338,6 +1344,9 @@ export function AuctionsPanel({ admin, emit }: any) {
           <p className="md:col-span-3 text-sm font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
             Max players at each base price
           </p>
+          <p className="md:col-span-3 text-sm" style={{ color: "var(--muted)" }}>
+            Leave blank for no cap at that base price.
+          </p>
           {bases.map((b) => (
             <Field
               key={b}
@@ -1345,7 +1354,8 @@ export function AuctionsPanel({ admin, emit }: any) {
               min={0}
               inputMode="numeric"
               label={`Max players at base ${inr(Number(b))}`}
-              value={maxByBase[b] ?? "4"}
+              value={maxByBase[b] ?? ""}
+              placeholder="No cap"
               onChange={(e) => setMaxByBase({ ...maxByBase, [b]: e.target.value })}
             />
           ))}

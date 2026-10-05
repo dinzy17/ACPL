@@ -229,7 +229,8 @@ const womenMissing = [
   { seq: 26, name: "Pooja Patil", email: "deshmukhpallavi1642@gmail.com", at: 1790925089000 },
   { seq: 27, name: "HARSHADA VINAY BHALSHANKAR", email: "bhanushali.hnb@gmail.com", at: 1790928457000 },
   { seq: 28, name: "Shruti Patil", email: "sap2790@gmail.com", at: 1790933086000 },
-  { seq: 29, name: "Ruchi More", email: "r.ruchi0606@gmail.com", at: 1790933430000 }
+  { seq: 29, name: "Ruchi More", email: "r.ruchi0606@gmail.com", at: 1790933430000 },
+  { seq: 30, name: "Priyanka Mistry", email: "sakhardande.priyanka@eclerx.com", at: 1790952286000, paymentStatus: "verified" }
 ];
 
 const kidsMissing = [

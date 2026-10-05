@@ -173,7 +173,6 @@ export function PlayerHero({
         <div className={compact ? "p-4" : "p-5 md:p-6"}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <RoleBadge role={player.role} />
               {player.categoryName ? <span className="badge bg-turf/10 text-turf">{player.categoryName}</span> : null}
             </div>
             {timer}
@@ -202,22 +201,6 @@ export function PlayerHero({
               </p>
               <p className="truncate text-sm font-bold">{lastTeam?.name || "No bid yet"}</p>
             </div>
-            {player.role ? (
-              <div className="rounded-2xl bg-canvas px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-                  Role
-                </p>
-                <p className="text-sm font-bold">{player.role}</p>
-              </div>
-            ) : null}
-            {player.phone ? (
-              <div className="rounded-2xl bg-canvas px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-                  Contact
-                </p>
-                <p className="text-sm font-bold">{player.phone}</p>
-              </div>
-            ) : null}
           </div>
           <div className="mt-3">
             <AcplStatsCard

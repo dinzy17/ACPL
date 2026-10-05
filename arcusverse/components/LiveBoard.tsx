@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
-import { BidTicker, Confetti, GavelTimer, PlayerHero, PurseMeter, SoldOverlay } from "@/components/AuctionBits";
+import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay } from "@/components/AuctionBits";
 import { useApp } from "@/components/Providers";
 import { inr, beep, crToLakhs, lakhsToCr } from "@/lib/format";
 
@@ -401,7 +401,6 @@ export function LiveBoard({
           <Button variant="lime" onClick={() => act("sold", { teamId: soldTeamId })} disabled={poolEmpty && live?.phase !== "bidding"}>
             Sold
           </Button>
-          <Button onClick={() => act("extend-timer")}>Reset counter</Button>
           <Button onClick={() => act("pause-auction")}>{paused ? "Resume" : "Pause"}</Button>
           <Button onClick={() => act("undo")}>Undo</Button>
           <Button variant="danger" onClick={() => act("unsold")} disabled={live?.phase !== "bidding"}>
@@ -473,13 +472,6 @@ export function LiveBoard({
             accent={lastTeam?.color}
             currentBid={currentBid}
             lastTeam={lastTeam}
-            timer={
-              <GavelTimer
-                endsAt={pick(live, "timerEndsAt", "timerEndsAt")}
-                totalSeconds={auction.timerSeconds ?? auction.timerSeconds}
-                frozenMs={paused ? pick(live, "timerFrozenMs", "timerFrozenMs") : null}
-              />
-            }
           />
           {mode !== "owner" && (
             <div className={`card h-fit p-4 ${outbid ? "outbid-shake" : lastBidTeamId ? "lime-flash" : ""}`}>

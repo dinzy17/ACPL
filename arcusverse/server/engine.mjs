@@ -745,15 +745,8 @@ export function resetTimer(store, auctionId) {
 }
 
 export function applyAutoHammer(store) {
-  const changed = [];
-  for (const auction of store.auctions) {
-    if (auction.status !== "live" || auction.live?.phase !== "bidding") continue;
-    if (!auction.live.timerEndsAt || Date.now() < auction.live.timerEndsAt) continue;
-    if (auction.live.lastBidTeamId) markSold(store, auction.id);
-    else markUnsold(store, auction.id);
-    changed.push(auction.id);
-  }
-  return changed;
+  // Timer UI removed — do not auto-hammer on expiry.
+  return [];
 }
 
 export function undoLast(store, auctionId) {

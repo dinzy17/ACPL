@@ -259,6 +259,7 @@ export function PlayersPanel({ admin, emit }: any) {
   const [mergeAbsorbId, setMergeAbsorbId] = useState("");
   const [msg, setMsg] = useState("");
   const [listSort, setListSort] = useState<"name" | "category">("name");
+  const [listCategoryId, setListCategoryId] = useState<string>("all");
   const { setSport } = useApp();
   const sameSport = (x: any) => String(x.sport || "Cricket").toLowerCase() === String(form.sport || "Cricket").toLowerCase();
   const isCricket = String(form.sport || "Cricket").toLowerCase() === "cricket";
@@ -268,7 +269,11 @@ export function PlayersPanel({ admin, emit }: any) {
     const sport = String(form.sport || "Cricket").toLowerCase();
     const catLabel = (categoryId: string) =>
       String(admin.categories.find((c: any) => c.id === categoryId)?.name || "");
-    const rows = admin.players.filter((p: any) => String(p.sport || "Cricket").toLowerCase() === sport);
+    const rows = admin.players.filter((p: any) => {
+      if (String(p.sport || "Cricket").toLowerCase() !== sport) return false;
+      if (listCategoryId !== "all" && p.categoryId !== listCategoryId) return false;
+      return true;
+    });
     return [...rows].sort((a: any, b: any) => {
       if (listSort === "category") {
         const ca = catLabel(a.categoryId).toLowerCase();
@@ -277,7 +282,7 @@ export function PlayersPanel({ admin, emit }: any) {
       }
       return String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" });
     });
-  }, [admin.players, admin.categories, form.sport, listSort]);
+  }, [admin.players, admin.categories, form.sport, listSort, listCategoryId]);
   const selectedLive = form.id ? listedPlayers.find((p: any) => p.id === form.id) : null;
 
   useEffect(() => {
@@ -663,17 +668,34 @@ export function PlayersPanel({ admin, emit }: any) {
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
             {listedPlayers.length} player{listedPlayers.length === 1 ? "" : "s"}
           </p>
-          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            Sort by
-            <select
-              className="field py-1 text-sm"
-              value={listSort}
-              onChange={(e) => setListSort(e.target.value === "category" ? "category" : "name")}
-            >
-              <option value="name">Name</option>
-              <option value="category">Category</option>
-            </select>
-          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+              Category
+              <select
+                className="field py-1 text-sm"
+                value={listCategoryId}
+                onChange={(e) => setListCategoryId(e.target.value)}
+              >
+                <option value="all">All categories</option>
+                {admin.categories.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+              Sort by
+              <select
+                className="field py-1 text-sm"
+                value={listSort}
+                onChange={(e) => setListSort(e.target.value === "category" ? "category" : "name")}
+              >
+                <option value="name">Name</option>
+                <option value="category">Category</option>
+              </select>
+            </label>
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead style={{ color: "var(--muted)" }}>
@@ -1056,11 +1078,11 @@ export function AuctionsPanel({ admin, emit }: any) {
   const [minSquad, setMinSquad] = useState("5");
   const [maxSquad, setMaxSquad] = useState("8");
   const [sequence, setSequence] = useState("random");
-  const [timerSeconds, setTimerSeconds] = useState("20");
   const [incRows, setIncRows] = useState(defaultIncrementRows());
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [maxByBase, setMaxByBase] = useState<Record<string, string>>({});
+  const [newBaseCr, setNewBaseCr] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const editingId = useRef("");
@@ -1131,9 +1153,9 @@ export function AuctionsPanel({ admin, emit }: any) {
     setMinSquad("5");
     setMaxSquad("8");
     setSequence("random");
-    setTimerSeconds("20");
     setIncRows(defaultIncrementRows());
     setMaxByBase({});
+    setNewBaseCr("");
     setErr("");
     setNote("New auction");
     if (tournamentId) applyRoster(tournamentId);
@@ -1159,7 +1181,6 @@ export function AuctionsPanel({ admin, emit }: any) {
         minSquad,
         maxSquad,
         sequence,
-        timerSeconds,
         teamIds,
         playerIds,
         increments: parseIncrements(),
@@ -1201,12 +1222,12 @@ export function AuctionsPanel({ admin, emit }: any) {
     setMinSquad(String(a.minSquad));
     setMaxSquad(String(a.maxSquad));
     setSequence(a.sequence || "random");
-    setTimerSeconds(String(a.timerSeconds || 20));
     setTeamIds(a.teamIds || []);
     setPlayerIds(a.playerIds || []);
     setMaxByBase(
       Object.fromEntries(Object.entries(a.maxByBasePrice || {}).map(([k, v]) => [String(Number(k)), String(v)]))
     );
+    setNewBaseCr("");
     setIncRows(incrementsToRows(a.increments));
     setErr("");
     setNote(`Editing ${a.name}`);
@@ -1285,7 +1306,6 @@ export function AuctionsPanel({ admin, emit }: any) {
         />
         <Field label="Total purse per team (crores)" value={purseCr} onChange={(e) => setPurseCr(e.target.value)} />
         <Field label="Max-bid denominators (cr, comma)" value={denoms} onChange={(e) => setDenoms(e.target.value)} />
-        <Field label="Timer seconds" value={timerSeconds} onChange={(e) => setTimerSeconds(e.target.value)} />
         <Field label="Min squad" value={minSquad} onChange={(e) => setMinSquad(e.target.value)} />
         <Field label="Max players per team" value={maxSquad} onChange={(e) => setMaxSquad(e.target.value)} />
         <Select label="Shuffle" value={sequence} onChange={(e) => setSequence(e.target.value)}>
@@ -1345,25 +1365,54 @@ export function AuctionsPanel({ admin, emit }: any) {
             Max players at each base price
           </p>
           <p className="md:col-span-3 text-sm" style={{ color: "var(--muted)" }}>
-            Leave blank for no cap at that base price.
+            Leave blank for no cap at that base price. Add a base price below if players do not have one set yet.
           </p>
           {bases.map((b) => (
-            <Field
-              key={b}
-              type="number"
-              min={0}
-              inputMode="numeric"
-              label={`Max players at base ${inr(Number(b))}`}
-              value={maxByBase[b] ?? ""}
-              placeholder="No cap"
-              onChange={(e) => setMaxByBase({ ...maxByBase, [b]: e.target.value })}
-            />
+            <div key={b} className="flex items-end gap-2">
+              <Field
+                className="flex-1"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                label={`Max players at base ${inr(Number(b))}`}
+                value={maxByBase[b] ?? ""}
+                placeholder="No cap"
+                onChange={(e) => setMaxByBase({ ...maxByBase, [b]: e.target.value })}
+              />
+              <Button
+                onClick={() => {
+                  const next = { ...maxByBase };
+                  delete next[b];
+                  setMaxByBase(next);
+                }}
+              >
+                Remove
+              </Button>
+            </div>
           ))}
-          {!bases.length && (
-            <p className="md:col-span-3 text-xs" style={{ color: "var(--muted)" }}>
-              Add players (same category) to this tournament to generate base-price slot fields.
-            </p>
-          )}
+          <div className="md:col-span-3 flex flex-wrap items-end gap-2">
+            <Field
+              label="Base price (crores)"
+              value={newBaseCr}
+              onChange={(e) => setNewBaseCr(e.target.value)}
+              placeholder="e.g. 2"
+            />
+            <Button
+              onClick={() => {
+                const n = Number(newBaseCr);
+                if (!Number.isFinite(n) || n < 0 || newBaseCr.trim() === "") {
+                  setErr("Enter a valid base price in crores to add");
+                  return;
+                }
+                const key = String(n);
+                if (maxByBase[key] == null) setMaxByBase({ ...maxByBase, [key]: "" });
+                setNewBaseCr("");
+                setErr("");
+              }}
+            >
+              Add base price
+            </Button>
+          </div>
         </div>
         <div className="md:col-span-3">
           <p className="mb-2 text-[11px] uppercase" style={{ color: "var(--muted)" }}>

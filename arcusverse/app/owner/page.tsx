@@ -59,7 +59,7 @@ export default function OwnerPage() {
     setErr("");
     const saved = readAuth();
     if (saved) {
-      sessionStorage.setItem("arcus-auth", JSON.stringify({ ...saved, code: "" }));
+      sessionStorage.setItem("arcus-auth", JSON.stringify({ ...saved, code: "", auctionId: "" }));
     }
     try {
       const res: any = await emit("owner-home", {});
@@ -115,11 +115,41 @@ export default function OwnerPage() {
       applyPublic(s);
     };
 
+    const openAuction = async (auth: any, opts: { code?: string; auctionId?: string }) => {
+      const joinCode = String(opts.code || "").trim().toUpperCase();
+      const res: any = await emit("login", {
+        username: auth.username,
+        password: auth.password,
+        code: joinCode || undefined,
+        auctionId: opts.auctionId
+      });
+      if (res.role !== "owner") {
+        router.replace(res.redirect || "/");
+        return null;
+      }
+      setTeamId(res.teamId);
+      setTeamName(res.teamName);
+      if (res.home) setHome(res.home);
+      const storeCode = joinCode || res.public?.auction?.code || "";
+      if (storeCode) {
+        sessionStorage.setItem("arcus-auth", JSON.stringify({ ...auth, code: storeCode, auctionId: opts.auctionId || res.public?.auction?.id || "" }));
+      }
+      const synced: any = await emit("sync-live", {
+        code: storeCode || undefined,
+        auctionId: opts.auctionId || res.public?.auction?.id
+      });
+      const next = synced.public || res.public;
+      if (!next?.auction) return null;
+      setViewing(next.auction.id);
+      applyPublic(next);
+      return next;
+    };
+
     const boot = () => {
       const auth = readAuth();
       if (!auth?.username) return;
       emit("login", { username: auth.username, password: auth.password })
-        .then((res: any) => {
+        .then(async (res: any) => {
           if (res.role !== "owner") {
             router.replace(res.redirect || "/");
             return;
@@ -127,10 +157,25 @@ export default function OwnerPage() {
           setTeamId(res.teamId);
           setTeamName(res.teamName);
           setHome(res.home || null);
-          setState(null);
-          setViewing(null);
-          if (auth.code) {
-            sessionStorage.setItem("arcus-auth", JSON.stringify({ ...auth, code: "" }));
+
+          const liveAuction =
+            (res.home?.auctions || []).find((a: any) => a.status === "live" || a.status === "paused") || null;
+          const resumeId = auth.auctionId || viewingRef.current || liveAuction?.id || "";
+          const resumeCode = auth.code || liveAuction?.code || "";
+
+          // Re-open hammer desk / live board after login or socket reconnect
+          if (resumeId || resumeCode) {
+            try {
+              await openAuction(auth, { auctionId: resumeId || undefined, code: resumeCode || undefined });
+              return;
+            } catch {
+              /* fall through to home */
+            }
+          }
+          // Stay on owner home when no live auction to resume
+          if (!viewingRef.current) {
+            setState(null);
+            setViewing(null);
           }
         })
         .catch(() => router.replace("/"));
@@ -174,7 +219,14 @@ export default function OwnerPage() {
       }
       if (res.home) setHome(res.home);
       const storeCode = joinCode || res.public?.auction?.code || "";
-      sessionStorage.setItem("arcus-auth", JSON.stringify({ ...saved, code: storeCode }));
+      sessionStorage.setItem(
+        "arcus-auth",
+        JSON.stringify({
+          ...saved,
+          code: storeCode,
+          auctionId: opts.auctionId || res.public?.auction?.id || ""
+        })
+      );
       const synced: any = await emit("sync-live", {
         code: storeCode,
         auctionId: opts.auctionId || res.public?.auction?.id

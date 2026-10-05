@@ -205,6 +205,16 @@ function catName(store, id) {
   return store.categories.find((c) => c.id === id)?.name || "";
 }
 
+/** Opening / displayed bid for a lot — never show 0 when the player has a base price. */
+export function lotCurrentBid(player, liveBid) {
+  const bid = Number(liveBid);
+  const base = Number(player?.basePrice);
+  if (Number.isFinite(bid) && bid > 0) return bid;
+  if (Number.isFinite(base) && base > 0) return base;
+  if (Number.isFinite(bid)) return bid;
+  return Number.isFinite(base) ? base : 0;
+}
+
 export function publicState(store, auctionId) {
   const auction = store.auctions.find((a) => a.id === auctionId || a.code === auctionId);
   if (!auction) return null;
@@ -259,6 +269,7 @@ export function publicState(store, auctionId) {
     live: live
       ? {
           ...live,
+          currentBid: lotCurrentBid(current, live.currentBid),
           currentPlayer: current
             ? {
                 ...current,
@@ -569,7 +580,7 @@ export function pickNext(store, auctionId) {
   }
   const player = store.players.find((p) => p.id === nextId);
   auction.live.currentPlayerId = nextId;
-  auction.live.currentBid = player.basePrice;
+  auction.live.currentBid = lotCurrentBid(player, player?.basePrice);
   auction.live.lastBidTeamId = null;
   auction.live.phase = "bidding";
   auction.live.timerEndsAt = Date.now() + auction.timerSeconds * 1000;
@@ -791,7 +802,7 @@ export function undoLast(store, auctionId) {
     live.remainingPlayerIds.unshift(last.playerId);
     live.currentPlayerId = last.playerId;
     const player = store.players.find((p) => p.id === last.playerId);
-    live.currentBid = player.basePrice;
+    live.currentBid = lotCurrentBid(player, player?.basePrice);
     live.lastBidTeamId = null;
     live.phase = "bidding";
     auction.status = "live";

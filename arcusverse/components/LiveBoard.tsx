@@ -164,7 +164,10 @@ export function LiveBoard({
   const router = useRouter();
   const live = state.live;
   const auction = state.auction;
-  const currentBid = Number(pick(live, "currentBid", "currentBid") ?? 0);
+  const currentBid =
+    Number(pick(live, "currentBid", "currentBid") ?? 0) ||
+    Number(live?.currentPlayer?.basePrice) ||
+    0;
   const lastBidTeamId = pick(live, "lastBidTeamId", "lastBidTeamId");
   const celebration = pick(live, "celebration", "celebration");
   const mine = state.teams.find((t: any) => t.id === teamId);

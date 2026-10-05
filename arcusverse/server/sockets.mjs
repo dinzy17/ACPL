@@ -13,6 +13,7 @@ import {
   resetTimer,
   applyAutoHammer,
   applyRetentions,
+  lotCurrentBid,
   endAuction
 } from "./engine.mjs";
 import { uid, pin4, hashPw, saveUpload, saveStore, DEFAULT_INCREMENTS, publicUser } from "./store.mjs";
@@ -86,7 +87,7 @@ function lotPayload(store, auction) {
     status: auction.status,
     rev: live?.rev || 0,
     phase: live?.phase || null,
-    currentBid: live?.currentBid || 0,
+    currentBid: lotCurrentBid(player, live?.currentBid),
     lastBidTeamId: live?.lastBidTeamId || null,
     timerEndsAt: live?.timerEndsAt || null,
     currentPlayer: player

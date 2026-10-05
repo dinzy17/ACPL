@@ -333,7 +333,7 @@ for (const w of womenMissing) {
     categorySequence: w.seq,
     registeredAt: w.at,
     status: "registered",
-    paymentStatus: "pending",
+    paymentStatus: w.paymentStatus || "pending",
     waitingPosition: null,
     values: {
       playerName: w.name,

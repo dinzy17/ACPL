@@ -1047,14 +1047,18 @@ export function attachSockets(io, store, urls) {
                 .filter(Boolean),
           minSquad: Number(p.minSquad) || 5,
           maxSquad: Number(p.maxSquad) || 8,
-          minByCategory: {},
           maxByBasePrice,
           increments,
           sequence: p.sequence || "random",
           teamIds,
-          playerIds,
-          timerSeconds: Number(p.timerSeconds) || 20
+          playerIds
         };
+        if (p.minByCategory && typeof p.minByCategory === "object" && Object.keys(p.minByCategory).length) {
+          body.minByCategory = p.minByCategory;
+        }
+        if (p.timerSeconds != null && p.timerSeconds !== "") {
+          body.timerSeconds = Number(p.timerSeconds) || 20;
+        }
         const code = p.code ? String(p.code).slice(0, 8).toUpperCase() : "";
         let i = p.id ? store.auctions.findIndex((a) => a.id === p.id) : -1;
         if (i < 0 && code) i = store.auctions.findIndex((a) => String(a.code).toUpperCase() === code);
@@ -1066,7 +1070,11 @@ export function attachSockets(io, store, urls) {
             id: prev.id,
             code: code || prev.code,
             status: prev.status,
-            live: prev.live
+            live: prev.live,
+            // Never drop existing config when the client omits these fields
+            minByCategory: body.minByCategory ?? prev.minByCategory ?? {},
+            timerSeconds: body.timerSeconds ?? prev.timerSeconds ?? 20,
+            maxByBasePrice: body.maxByBasePrice ?? prev.maxByBasePrice ?? {}
           };
         } else {
           store.auctions.push({
@@ -1074,6 +1082,8 @@ export function attachSockets(io, store, urls) {
             code: code || uid().toString().slice(0, 6).toUpperCase(),
             status: "draft",
             live: null,
+            minByCategory: body.minByCategory || {},
+            timerSeconds: body.timerSeconds ?? 20,
             ...body
           });
         }

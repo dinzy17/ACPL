@@ -1146,8 +1146,12 @@ export function AuctionsPanel({ admin, emit }: any) {
       const lakhs = crToLakhs(raw);
       if (lakhs && Number.isFinite(Number(lakhs))) set.add(String(Number(lakhs)));
     }
+    // Keep previously saved base-price caps visible so editing never drops them
+    for (const k of Object.keys(maxByBase)) {
+      if (k && Number.isFinite(Number(k))) set.add(String(Number(k)));
+    }
     return Array.from(set).sort((a, b) => Number(a) - Number(b));
-  }, [admin.players, playerIds, categoryId, tourSport, denoms]);
+  }, [admin.players, playerIds, categoryId, tourSport, denoms, maxByBase]);
 
   const parseIncrements = () => rowsToIncrements(incRows);
 
@@ -1191,16 +1195,29 @@ export function AuctionsPanel({ admin, emit }: any) {
         teamIds,
         playerIds,
         increments: parseIncrements(),
-        minByCategory: {},
-        maxByBasePrice: Object.fromEntries(
-          bases.flatMap((b) => {
+        maxByBasePrice: (() => {
+          const next: Record<string, number> = {};
+          const existing =
+            (auctionId && admin.auctions.find((a: any) => a.id === auctionId)?.maxByBasePrice) || {};
+          const shown = new Set(bases);
+          // Preserve any saved caps not currently shown in the form
+          for (const [k, v] of Object.entries(existing)) {
+            const key = String(Number(k));
+            if (!Number.isFinite(Number(k)) || shown.has(key)) continue;
+            if (v == null || v === "") continue;
+            const n = Number(v);
+            if (Number.isFinite(n) && n >= 0) next[key] = n;
+          }
+          // Form fields: blank / omitted = no cap for that base
+          for (const b of bases) {
             const raw = maxByBase[b];
-            if (raw === "" || raw == null) return [];
+            if (raw === "" || raw == null) continue;
             const n = Number(raw);
-            if (!Number.isFinite(n) || n < 0) return [];
-            return [[b, n]];
-          })
-        )
+            if (!Number.isFinite(n) || n < 0) continue;
+            next[b] = n;
+          }
+          return next;
+        })()
       });
       const saved =
         res?.admin?.auctions?.find((a: any) => a.id === auctionId) ||

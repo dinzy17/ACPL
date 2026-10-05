@@ -1,0 +1,66 @@
+player_id,name,team_id,team_name,total_match,catches,caught_behind,run_outs,assist_run_outs,stumpings,caught_and_bowl,total_catches,total_dismissal
+16163644,Jayant Parkhi,3067975,Royal Warriors,8,12,0,0,0,0,0,12,12
+43281347,Mandar Hanchate,3067975,Royal Warriors,8,8,0,2,1,0,1,9,11
+24593862,Harshad Dewate,3067980,STRIKERS,6,6,0,2,0,0,0,6,8
+1365178,Omkar Sinha,3980746,Royal Challengers,9,0,6,1,3,1,0,6,8
+2638892,Siddhanth Parekh,3067973,MAVERICKS,6,0,6,1,0,0,0,6,7
+3683944,Prashant Puri,3067979,PHOENIX,8,6,0,0,1,0,1,7,7
+19940642,Dinesh Patil Rahul Arcus,3980744,Vikings,7,3,0,3,2,0,0,3,6
+19940638,Bibhu Prasad Panda,3067979,PHOENIX,8,0,4,1,1,0,1,5,6
+12299664,Sudarshan Patil,3067973,MAVERICKS,6,3,1,1,0,0,0,4,5
+29245404,Vivek Kumar,12032999,Deccan Knights,6,5,0,0,0,0,0,5,5
+850817,Hrishikesh Joshi,3067980,STRIKERS,6,4,0,1,2,0,0,4,5
+16180968,Sagar Jadhav,3067980,STRIKERS,6,0,4,0,0,1,0,4,5
+20047642,Amit Moon,3067973,MAVERICKS,6,4,0,1,1,0,0,4,5
+24593860,Mukesh Singh Arcus,3067973,MAVERICKS,6,5,0,0,0,0,0,5,5
+16132644,Swapnil Matte,3980744,Vikings,7,0,5,0,0,0,0,5,5
+33119043,Rubal,3067975,Royal Warriors,8,3,0,0,0,0,2,5,5
+21968770,Sandesh Jain,3067975,Royal Warriors,8,0,2,1,1,2,0,2,5
+2290558,Rohit V Abbigeri,3067979,PHOENIX,8,4,0,1,0,0,0,4,5
+17814423,Amit Karande,12032999,Deccan Knights,6,1,1,0,0,2,0,2,4
+20121723,Jemin Mistry,3067975,Royal Warriors,8,2,0,2,0,0,0,2,4
+24790051,Akshay Ratnaparkhi,3980746,Royal Challengers,9,2,0,1,0,0,1,3,4
+10703577,Yogesh Pandit,3980746,Royal Challengers,9,3,0,1,0,0,0,3,4
+8745736,Vishal Ratan Singh,3067973,MAVERICKS,6,3,0,0,0,0,0,3,3
+20339476,Dayanand Patil,3067980,STRIKERS,6,2,0,1,1,0,0,2,3
+4746732,Aradhya Deshmukh,3067980,STRIKERS,6,3,0,0,1,0,0,3,3
+7814874,Sudarshan Kabra,3980744,Vikings,7,3,0,0,1,0,0,3,3
+20288476,Sarvesh Desai,3980744,Vikings,7,2,0,1,0,0,0,2,3
+19941285,Vinit Karande,3067975,Royal Warriors,8,1,0,2,0,0,0,1,3
+3881514,Raghav,3067979,PHOENIX,8,2,0,1,0,0,0,2,3
+23235448,Raghav Sharma,3067975,Royal Warriors,8,1,0,2,1,0,0,1,3
+33119522,Saurabh Sonkar,3067975,Royal Warriors,8,1,0,1,0,0,1,2,3
+2124876,Pushkar Sinha,3980746,Royal Challengers,9,2,0,0,0,0,1,3,3
+24593819,Khantil Dixit C1102 Rahul Arcus,3980746,Royal Challengers,9,1,0,2,0,0,0,1,3
+25228565,Bni Orion Ashay Agarwal,12032999,Deccan Knights,6,2,0,0,1,0,0,2,2
+26007816,Chirag Rokade,12032999,Deccan Knights,6,2,0,0,0,0,0,2,2
+44964478,Rushikesh Shete,12032999,Deccan Knights,6,2,0,0,0,0,0,2,2
+10654571,Arun Raghuwanshi,12032999,Deccan Knights,6,2,0,0,0,0,0,2,2
+6521732,Gaurav Pillai,3067980,STRIKERS,6,1,0,1,0,0,0,1,2
+4249093,Ravi,3980744,Vikings,7,1,0,1,1,0,0,1,2
+33119034,Laxmikant Mane,3980744,Vikings,7,0,0,1,0,0,1,1,2
+10392885,Suchit Awalgaonkar,3980744,Vikings,7,2,0,0,0,0,0,2,2
+16199977,Shahaji Dhumal,3067979,PHOENIX,8,1,0,1,0,0,0,1,2
+2328786,Saurabh,3067979,PHOENIX,8,0,1,1,1,0,0,1,2
+1519669,Ajit,3980746,Royal Challengers,9,1,0,1,1,0,0,1,2
+10654570,Nilesh Changade,3980746,Royal Challengers,9,2,0,0,1,0,0,2,2
+10393119,Amit Deshmukh,12032999,Deccan Knights,6,1,0,0,0,0,0,1,1
+44280234,Siddharth Shawarikar,3067973,MAVERICKS,6,1,0,0,0,0,0,1,1
+5231273,Mitesh Kumar,3067980,STRIKERS,6,1,0,0,0,0,0,1,1
+4814441,Ganesh Shaha,12032999,Deccan Knights,6,0,0,1,0,0,0,0,1
+12298915,Meherchandan Rohanekar,3067973,MAVERICKS,6,1,0,0,0,0,0,1,1
+16593052,Nishant Zunzunwala,3067980,STRIKERS,6,1,0,0,0,0,0,1,1
+27520854,Raman Raman,3980744,Vikings,7,0,0,1,0,0,0,0,1
+10395215,Amol Khodke,3067979,PHOENIX,8,1,0,0,0,0,0,1,1
+7525808,Prashant A,3067979,PHOENIX,8,1,0,0,0,0,0,1,1
+20339498,Nikhil Deshpande Arcus,3980746,Royal Challengers,9,0,0,1,0,0,0,0,1
+2773155,Anurag Singh,3980746,Royal Challengers,9,1,0,0,0,0,0,1,1
+24593737,Sunil Giram A Wing Rahul Arcus,3980744,Vikings,1,0,0,0,0,0,0,0,0
+16273268,Anagh Garg,3067980,STRIKERS,4,0,0,0,0,0,0,0,0
+31912310,Palash Soni,3067980,STRIKERS,5,0,0,0,0,0,0,0,0
+30912036,Kunal Arora,3067973,MAVERICKS,6,0,0,0,0,0,0,0,0
+6406110,Ashish Pandit,12032999,Deccan Knights,6,0,0,0,0,0,0,0,0
+44280235,Parag Bhayani,3067973,MAVERICKS,6,0,0,0,0,0,0,0,0
+43660429,Nirav Shah,3980744,Vikings,7,0,0,0,0,0,0,0,0
+43281349,Yogesh Potdar,3067979,PHOENIX,8,0,0,0,0,0,0,0,0
+10392715,Rushikesh Saraf,3067975,Royal Warriors,8,0,0,0,0,0,0,0,0

@@ -463,14 +463,24 @@ export function loadStore() {
     fs.writeFileSync(STORE_PATH, JSON.stringify(seed, null, 2));
     return seed;
   }
+  const raw = fs.readFileSync(STORE_PATH, "utf8");
   try {
-    const store = migrate(JSON.parse(fs.readFileSync(STORE_PATH, "utf8")));
+    const store = migrate(JSON.parse(raw));
     fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
     return store;
-  } catch {
-    const seed = emptySeed();
-    fs.writeFileSync(STORE_PATH, JSON.stringify(seed, null, 2));
-    return seed;
+  } catch (err) {
+    // Never replace an existing store with an empty seed — that would wipe
+    // registrations, auction config, and all live data. Keep the file and fail loud.
+    const backup = `${STORE_PATH}.corrupt.${Date.now()}`;
+    try {
+      fs.copyFileSync(STORE_PATH, backup);
+    } catch {
+      /* best-effort backup */
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Failed to load store.json (left in place; backup: ${backup}): ${message}`
+    );
   }
 }
 

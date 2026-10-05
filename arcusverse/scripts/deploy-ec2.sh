@@ -50,20 +50,18 @@ PUBLIC_URL='$PUBLIC_URL'
 echo "Extracting (preserving data/store.json, uploads, private-uploads)..."
 mkdir -p /home/ec2-user/ArcusVerse
 cd /home/ec2-user/ArcusVerse
-# Backup live data before extract in case a future bundle still includes it
+# Backup live data before extract — production store must never be wiped by deploy
 TS=\$(date +%Y%m%d-%H%M%S)
 if [[ -f data/store.json ]]; then
   cp -a data/store.json "/home/ec2-user/store.json.predeploy.\$TS"
 fi
 tar -xzf /home/ec2-user/arcusverse-deploy.tgz
 rm -f /home/ec2-user/arcusverse-deploy.tgz
-# Prefer the pre-deploy store if the bundle overwrote it with a tiny/empty seed
+# Always restore the pre-deploy store when one existed (never replace live data/config)
 if [[ -f "/home/ec2-user/store.json.predeploy.\$TS" ]]; then
-  if [[ ! -f data/store.json ]] || [[ \$(wc -c < data/store.json) -lt \$(wc -c < "/home/ec2-user/store.json.predeploy.\$TS") ]]; then
-    echo "Restoring preserved store.json from pre-deploy backup"
-    mkdir -p data
-    cp -a "/home/ec2-user/store.json.predeploy.\$TS" data/store.json
-  fi
+  echo "Restoring preserved store.json from pre-deploy backup (bytes=\$(wc -c < /home/ec2-user/store.json.predeploy.\$TS))"
+  mkdir -p data
+  cp -a "/home/ec2-user/store.json.predeploy.\$TS" data/store.json
 fi
 
 NODE_BIN=\$(command -v node)

@@ -1025,15 +1025,20 @@ export function attachSockets(io, store, urls) {
           );
         });
         const increments = Array.isArray(p.increments) ? p.increments : DEFAULT_INCREMENTS;
-        const maxByBasePrice = {};
-        for (const [k, v] of Object.entries(p.maxByBasePrice || {})) {
-          const key = String(Number(k));
-          if (!Number.isFinite(Number(k))) continue;
-          // Blank / omitted = no cap for that base price
-          if (v == null || v === "") continue;
-          const n = Number(v);
-          if (!Number.isFinite(n) || n < 0) continue;
-          maxByBasePrice[key] = n;
+        // Only replace maxByBasePrice when the client explicitly sends the field.
+        // Omitting it must never wipe existing caps.
+        let maxByBasePrice;
+        if (p.maxByBasePrice != null && typeof p.maxByBasePrice === "object") {
+          maxByBasePrice = {};
+          for (const [k, v] of Object.entries(p.maxByBasePrice)) {
+            const key = String(Number(k));
+            if (!Number.isFinite(Number(k))) continue;
+            // Blank = no cap for that base price
+            if (v == null || v === "") continue;
+            const n = Number(v);
+            if (!Number.isFinite(n) || n < 0) continue;
+            maxByBasePrice[key] = n;
+          }
         }
         const body = {
           name: p.name || "Auction",
@@ -1048,12 +1053,12 @@ export function attachSockets(io, store, urls) {
                 .filter(Boolean),
           minSquad: Number(p.minSquad) || 5,
           maxSquad: Number(p.maxSquad) || 8,
-          maxByBasePrice,
           increments,
           sequence: p.sequence || "random",
           teamIds,
           playerIds
         };
+        if (maxByBasePrice !== undefined) body.maxByBasePrice = maxByBasePrice;
         if (p.minByCategory && typeof p.minByCategory === "object" && Object.keys(p.minByCategory).length) {
           body.minByCategory = p.minByCategory;
         }
@@ -1085,6 +1090,7 @@ export function attachSockets(io, store, urls) {
             live: null,
             minByCategory: body.minByCategory || {},
             timerSeconds: body.timerSeconds ?? 20,
+            maxByBasePrice: body.maxByBasePrice || {},
             ...body
           });
         }

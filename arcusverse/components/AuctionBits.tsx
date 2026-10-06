@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ROLE_META, inr } from "@/lib/format";
 import { AcplStatsCard } from "@/components/AcplStats";
 
@@ -29,40 +29,71 @@ export function Confetti({ show }: { show: boolean }) {
   );
 }
 
-function TigerBat({ sad = false }: { sad?: boolean }) {
+/** Green-screen tiger celebration assets (chroma-keyed at draw time). */
+function ChromaTiger({
+  src,
+  alt,
+  className = "",
+  mood = "sold"
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  mood?: "sold" | "unsold";
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      if (cancelled) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      const frame = ctx.getImageData(0, 0, w, h);
+      const d = frame.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
+        // Bright chroma green: G dominates R/B (works for #00b140–#4CAF50 screens)
+        const maxRB = Math.max(r, b);
+        const greenness = g - maxRB;
+        if (g > 85 && greenness > 28 && g > r * 1.15 && g > b * 1.15) {
+          if (greenness > 55) {
+            d[i + 3] = 0;
+          } else {
+            d[i + 3] = Math.max(0, Math.min(255, Math.round(((greenness - 28) / 27) * -255 + 255)));
+          }
+        }
+      }
+      ctx.putImageData(frame, 0, 0);
+      setReady(true);
+    };
+    img.onerror = () => setReady(false);
+    img.src = src;
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
   return (
-    <svg viewBox="0 0 200 160" className="tiger-svg h-36 w-44" aria-hidden>
-      <ellipse cx="100" cy="118" rx="54" ry="22" fill="#f59e0b" opacity="0.25" />
-      <g className={sad ? "tiger-sad" : "tiger-sold"}>
-        <ellipse cx="100" cy="95" rx="42" ry="36" fill="#f59e0b" />
-        <path d="M70 80 Q100 55 130 80" fill="#fbbf24" />
-        <circle cx="82" cy="88" r="6" fill="#111" />
-        <circle cx="118" cy="88" r="6" fill="#111" />
-        {sad ? (
-          <path d="M88 112 Q100 104 112 112" stroke="#7c2d12" strokeWidth="3" fill="none" strokeLinecap="round" />
-        ) : (
-          <path d="M88 108 Q100 118 112 108" stroke="#7c2d12" strokeWidth="3" fill="none" strokeLinecap="round" />
-        )}
-        <path d="M100 94 l0 10" stroke="#7c2d12" strokeWidth="3" />
-        <path d="M62 70 L48 48 L70 66 Z" fill="#f59e0b" stroke="#b45309" />
-        <path d="M138 70 L152 48 L130 66 Z" fill="#f59e0b" stroke="#b45309" />
-        <rect x="128" y="108" width="28" height="14" rx="4" fill="#e2e8f0" stroke="#64748b" />
-        <rect x="148" y="102" width="10" height="26" rx="3" fill="#94a3b8" />
-        <rect x="44" y="108" width="28" height="14" rx="4" fill="#e2e8f0" stroke="#64748b" />
-        {!sad && <path d="M155 95 L175 70" stroke="#334155" strokeWidth="4" strokeLinecap="round" />}
-        {sad && (
-          <>
-            <g className="stumps">
-              <rect x="168" y="70" width="4" height="40" fill="#78350f" />
-              <rect x="176" y="70" width="4" height="40" fill="#78350f" />
-              <rect x="184" y="70" width="4" height="40" fill="#78350f" />
-              <rect x="166" y="68" width="24" height="3" fill="#fef3c7" className="bails" />
-            </g>
-            <circle cx="160" cy="55" r="6" fill="#fff" className="ball-miss" />
-          </>
-        )}
-      </g>
-    </svg>
+    <canvas
+      ref={canvasRef}
+      role="img"
+      aria-label={alt}
+      className={`tiger-mascot tiger-mascot-${mood} ${ready ? "opacity-100" : "opacity-0"} ${className}`}
+    />
   );
 }
 
@@ -82,23 +113,28 @@ export function SoldOverlay({
       onClick={onDismiss}
     >
       <div
-        className="relative flex min-h-[300px] w-[min(92vw,560px)] flex-col items-center justify-center rounded-3xl p-8 text-center shadow-2xl"
+        className="relative flex min-h-[320px] w-[min(92vw,560px)] flex-col items-center justify-center overflow-hidden rounded-3xl p-6 text-center shadow-2xl sm:p-8"
         style={{
           background: `linear-gradient(160deg, ${team?.color || "#0284C7"} 0%, #fff7ed 55%, #fff 100%)`
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <TigerBat />
-        <p className="mt-2 text-sm font-semibold uppercase tracking-[0.35em] text-turf">Hammer down</p>
-        <div className="sold-stamp mt-3 border-4 border-crimson px-6 py-2 font-display text-6xl text-crimson">SOLD</div>
-        <p className="mt-4 font-display text-3xl" style={{ color: team?.color || "var(--turf)" }}>
+        <ChromaTiger
+          src="/celebrations/tiger-sold.jpg"
+          alt="Tiger celebrating sold"
+          mood="sold"
+          className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"
+        />
+        <p className="mt-1 text-sm font-semibold uppercase tracking-[0.35em] text-turf">Hammer down</p>
+        <div className="sold-stamp mt-2 border-4 border-crimson px-6 py-2 font-display text-6xl text-crimson">SOLD</div>
+        <p className="mt-3 font-display text-3xl" style={{ color: team?.color || "var(--turf)" }}>
           to {team?.name || "—"}
         </p>
         {team?.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={team.logo} alt="" className="mt-3 h-16 w-16 rounded-full object-cover ring-4 ring-gold" />
         ) : null}
-        <p className="mt-4 text-xs" style={{ color: "#64748b" }}>
+        <p className="mt-3 text-xs" style={{ color: "#64748b" }}>
           Closes in a few seconds · click outside to return
         </p>
       </div>
@@ -114,15 +150,20 @@ export function UnsoldOverlay({ show, onDismiss }: { show: boolean; onDismiss?: 
       onClick={onDismiss}
     >
       <div
-        className="relative flex min-h-[300px] w-[min(92vw,560px)] flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-8 text-center shadow-2xl"
+        className="relative flex min-h-[320px] w-[min(92vw,560px)] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-6 text-center shadow-2xl sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        <TigerBat sad />
-        <div className="unsold-stamp mt-3 border-4 border-amber-200/80 px-6 py-2 font-display text-6xl text-amber-100">
+        <ChromaTiger
+          src="/celebrations/tiger-unsold.jpg"
+          alt="Tiger disappointed unsold"
+          mood="unsold"
+          className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"
+        />
+        <div className="unsold-stamp mt-2 border-4 border-amber-200/80 px-6 py-2 font-display text-6xl text-amber-100">
           UNSOLD
         </div>
-        <p className="mt-4 text-sm text-slate-300">Bowled over — walks back to the pavilion</p>
-        <p className="mt-3 text-xs text-slate-500">Closes in a few seconds · click outside to return</p>
+        <p className="mt-3 text-sm text-slate-300">No buyers — back to the pavilion</p>
+        <p className="mt-2 text-xs text-slate-500">Closes in a few seconds · click outside to return</p>
       </div>
     </div>
   );

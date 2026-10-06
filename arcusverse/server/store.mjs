@@ -163,7 +163,32 @@ function resolveFfmpeg() {
   return null;
 }
 
-/** Compress animated GIF/WebP for overlay use while keeping motion. */
+/** Sample top-left green-screen pixel from the first frame. */
+function sampleCornerColor(ffmpeg, inputPath) {
+  try {
+    const raw = execFileSync(
+      ffmpeg,
+      ["-i", inputPath, "-vframes", "1", "-vf", "crop=1:1:12:12", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"],
+      { encoding: "buffer", maxBuffer: 64, stdio: ["ignore", "pipe", "ignore"], timeout: 30000 }
+    );
+    if (!raw || raw.length < 3) return null;
+    const r = raw[0];
+    const g = raw[1];
+    const b = raw[2];
+    // Only treat as chroma key if the corner is clearly green
+    if (!(g > 80 && g > r + 20 && g > b + 20)) return null;
+    const hex = ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+    const sim = g > 160 ? "0.14" : "0.09";
+    return { hex, sim };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Compress animated GIF/WebP for overlay use while keeping motion,
+ * and bake out green-screen transparency for native <img> playback.
+ */
 function optimizeCelebrationGif(buf) {
   const ffmpeg = resolveFfmpeg();
   if (!ffmpeg) return buf;
@@ -172,7 +197,11 @@ function optimizeCelebrationGif(buf) {
   const output = path.join(dir, "out.gif");
   try {
     fs.writeFileSync(input, buf);
-    // Cap width, fps, and palette so large phone GIFs shrink to overlay size
+    const key = sampleCornerColor(ffmpeg, input);
+    const keyFilter = key
+      ? `chromakey=0x${key.hex}:${key.sim}:0.04,format=rgba,`
+      : "";
+    // Cap width/fps, key out green, then write a transparent palette GIF
     execFileSync(
       ffmpeg,
       [
@@ -180,7 +209,7 @@ function optimizeCelebrationGif(buf) {
         "-i",
         input,
         "-vf",
-        "fps=12,scale='min(480,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=192:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4",
+        `fps=12,scale='min(480,iw)':-1:flags=lanczos,${keyFilter}split[s0][s1];[s0]palettegen=reserve_transparent=1:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:alpha_threshold=128`,
         "-loop",
         "0",
         output

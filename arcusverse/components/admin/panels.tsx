@@ -1562,9 +1562,44 @@ export function UsersPanel({ admin, emit, staff }: any) {
 
 export function SettingsPanel({ staff, admin, emit }: any) {
   const liveBidding = admin?.meta?.liveBidding === true;
+  const celebrations = admin?.meta?.celebrations || {};
+  const [note, setNote] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState<"sold" | "unsold" | "">("");
+
   const toggleLive = async () => {
     await emit("set-live-bidding", { enabled: !liveBidding });
   };
+
+  const uploadCelebration = async (kind: "sold" | "unsold", file: File | null) => {
+    if (!file) return;
+    try {
+      setErr("");
+      setNote("");
+      setBusy(kind);
+      const name = file.name.toLowerCase();
+      if (!name.endsWith(".gif") && !name.endsWith(".webp") && !file.type.includes("gif") && !file.type.includes("webp")) {
+        throw new Error("Choose the original animated .gif file (not a photo/screenshot)");
+      }
+      if (file.size > 12 * 1024 * 1024) throw new Error("GIF is too large (max 12 MB)");
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res: any = await emit("upload-celebration", { kind, dataUrl, filename: file.name });
+      const saved = res?.celebration;
+      setNote(
+        `${kind === "sold" ? "Sold" : "Unsold"} GIF saved (${Math.round((saved?.bytes || file.size) / 1024)} KB). Hard-refresh live boards.`
+      );
+    } catch (e: any) {
+      setErr(e.message || "Upload failed");
+    } finally {
+      setBusy("");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-lg space-y-4">
       <Card className="space-y-3">
@@ -1597,6 +1632,50 @@ export function SettingsPanel({ staff, admin, emit }: any) {
           </button>
         </div>
       </Card>
+
+      <Card className="space-y-3">
+        <h2 className="font-display text-3xl">Sold / Unsold GIFs</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Upload the original animated .gif files from your phone Files app. Chat attachments get flattened to still photos —
+          this upload keeps the real animation frames.
+        </p>
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold">Sold celebration GIF</span>
+            <input
+              type="file"
+              accept="image/gif,image/webp,.gif,.webp"
+              disabled={!!busy}
+              onChange={(e) => uploadCelebration("sold", e.target.files?.[0] || null)}
+              className="block w-full text-sm"
+            />
+            {celebrations.sold?.url ? (
+              <p className="text-xs" style={{ color: "var(--muted)" }}>
+                Current: {celebrations.sold.url}
+              </p>
+            ) : null}
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold">Unsold celebration GIF</span>
+            <input
+              type="file"
+              accept="image/gif,image/webp,.gif,.webp"
+              disabled={!!busy}
+              onChange={(e) => uploadCelebration("unsold", e.target.files?.[0] || null)}
+              className="block w-full text-sm"
+            />
+            {celebrations.unsold?.url ? (
+              <p className="text-xs" style={{ color: "var(--muted)" }}>
+                Current: {celebrations.unsold.url}
+              </p>
+            ) : null}
+          </label>
+        </div>
+        {busy ? <p className="text-sm">Uploading {busy} GIF…</p> : null}
+        {note ? <p className="text-sm text-turf">{note}</p> : null}
+        {err ? <p className="text-sm" style={{ color: "var(--crimson)" }}>{err}</p> : null}
+      </Card>
+
       <Card className="space-y-3">
         <h2 className="font-display text-3xl">Account</h2>
         <p>Signed in as {staff}. Logins no longer use PINs.</p>

@@ -16,7 +16,7 @@ import {
   lotCurrentBid,
   endAuction
 } from "./engine.mjs";
-import { uid, pin4, hashPw, saveUpload, saveStore, DEFAULT_INCREMENTS, publicUser } from "./store.mjs";
+import { uid, pin4, hashPw, saveUpload, saveCelebrationGif, saveStore, DEFAULT_INCREMENTS, publicUser } from "./store.mjs";
 import { buildAuctionFixture } from "./schedule.mjs";
 import { importAcplHistory, defaultAcplDataRoot, findAcplPlayer, acplCareerSummary } from "./acpl.mjs";
 import {
@@ -329,6 +329,26 @@ export function attachSockets(io, store, urls) {
         requireRole(socket, STAFF);
         const url = saveUpload(p.dataUrl, p.filename || "photo.png");
         return { url };
+      })
+    );
+
+    socket.on(
+      "upload-celebration",
+      wrap((p) => {
+        requireRole(socket, ["super", "admin"]);
+        const saved = saveCelebrationGif(p.dataUrl, p.kind);
+        store.meta = store.meta || {};
+        store.meta.celebrations = {
+          ...(store.meta.celebrations || {}),
+          [saved.kind]: { url: saved.url, bytes: saved.bytes, ext: saved.ext, updatedAt: Date.now() }
+        };
+        persist();
+        io.to("admin").emit("admin-state", adminState(store));
+        // Refresh live boards so overlays pick up new asset URLs
+        for (const a of store.auctions) {
+          if (a.status === "live" || a.status === "paused") broadcast(a.id);
+        }
+        return { admin: adminState(store), celebration: saved };
       })
     );
 

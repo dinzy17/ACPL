@@ -291,7 +291,10 @@ export function publicState(store, auctionId) {
     });
 
   return {
-    meta: { updatedAt: store.meta.updatedAt },
+    meta: {
+      updatedAt: store.meta.updatedAt,
+      celebrations: store.meta.celebrations || null
+    },
     auction: {
       id: auction.id,
       code: auction.code,
@@ -374,7 +377,8 @@ export function adminState(store) {
   return {
     meta: {
       updatedAt: store.meta.updatedAt,
-      liveBidding: store.meta.liveBidding === true
+      liveBidding: store.meta.liveBidding === true,
+      celebrations: store.meta.celebrations || null
     },
     tournaments: store.tournaments,
     categories: store.categories,

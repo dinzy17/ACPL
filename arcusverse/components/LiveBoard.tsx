@@ -458,8 +458,17 @@ export function LiveBoard({
   return (
     <div className="space-y-4">
       <Confetti show={!!soldStamp} />
-      <SoldOverlay show={!!soldStamp} team={soldTeam} onDismiss={() => setSoldStamp(null)} />
-      <UnsoldOverlay show={!!unsoldStamp} onDismiss={() => setUnsoldStamp(null)} />
+      <SoldOverlay
+        show={!!soldStamp}
+        team={soldTeam}
+        onDismiss={() => setSoldStamp(null)}
+        gifSrc={state?.meta?.celebrations?.sold?.url || null}
+      />
+      <UnsoldOverlay
+        show={!!unsoldStamp}
+        onDismiss={() => setUnsoldStamp(null)}
+        gifSrc={state?.meta?.celebrations?.unsold?.url || null}
+      />
       {mode === "owner" && maxBidPopup && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
           <Card className="relative z-[71] max-w-md space-y-3 p-6 text-center">

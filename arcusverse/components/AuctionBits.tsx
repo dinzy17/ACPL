@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ROLE_META, inr } from "@/lib/format";
 import { AcplStatsCard } from "@/components/AcplStats";
+import { CelebrationGif } from "@/components/CelebrationGif";
 
 export function Confetti({ show }: { show: boolean }) {
   const bits = useMemo(
@@ -29,37 +30,21 @@ export function Confetti({ show }: { show: boolean }) {
   );
 }
 
-/** Animated celebration GIFs (transparent / green already keyed out). */
-function TigerGif({
-  src,
-  alt,
-  className = "",
-  mood = "sold"
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-  mood?: "sold" | "unsold";
-}) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      draggable={false}
-      className={`tiger-mascot tiger-mascot-${mood} ${className}`}
-    />
-  );
+function celebrationSrc(kind: "sold" | "unsold", override?: string | null) {
+  if (override) return override;
+  return `/celebrations/tiger-${kind}.gif`;
 }
 
 export function SoldOverlay({
   show,
   team,
-  onDismiss
+  onDismiss,
+  gifSrc
 }: {
   show: boolean;
   team?: { name?: string; logo?: string; color?: string } | null;
   onDismiss?: () => void;
+  gifSrc?: string | null;
 }) {
   if (!show) return null;
   return (
@@ -74,8 +59,8 @@ export function SoldOverlay({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <TigerGif
-          src="/celebrations/tiger-sold.gif"
+        <CelebrationGif
+          src={celebrationSrc("sold", gifSrc)}
           alt="Tiger celebrating sold"
           mood="sold"
           className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"
@@ -97,7 +82,15 @@ export function SoldOverlay({
   );
 }
 
-export function UnsoldOverlay({ show, onDismiss }: { show: boolean; onDismiss?: () => void }) {
+export function UnsoldOverlay({
+  show,
+  onDismiss,
+  gifSrc
+}: {
+  show: boolean;
+  onDismiss?: () => void;
+  gifSrc?: string | null;
+}) {
   if (!show) return null;
   return (
     <div
@@ -108,8 +101,8 @@ export function UnsoldOverlay({ show, onDismiss }: { show: boolean; onDismiss?: 
         className="relative flex min-h-[320px] w-[min(92vw,560px)] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-6 text-center shadow-2xl sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        <TigerGif
-          src="/celebrations/tiger-unsold.gif"
+        <CelebrationGif
+          src={celebrationSrc("unsold", gifSrc)}
           alt="Tiger disappointed unsold"
           mood="unsold"
           className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"

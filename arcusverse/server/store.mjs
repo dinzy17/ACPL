@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 const UPLOAD_DIR = path.join(__dirname, "..", "public", "uploads");
+const CELEBRATIONS_DIR = path.join(__dirname, "..", "public", "celebrations");
 
 export function lanAddresses() {
   const out = [];
@@ -140,6 +141,36 @@ export function saveUpload(dataUrl, filename = "file") {
   const name = `${uid()}.${ext}`;
   fs.writeFileSync(path.join(UPLOAD_DIR, name), Buffer.from(match[2], "base64"));
   return `/uploads/${name}`;
+}
+
+/** Save sold/unsold celebration GIF bytes exactly (no re-encode). */
+export function saveCelebrationGif(dataUrl, kind) {
+  const which = String(kind || "").toLowerCase() === "unsold" ? "unsold" : "sold";
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Invalid GIF data");
+  const mime = String(match[1] || "").toLowerCase();
+  const buf = Buffer.from(match[2], "base64");
+  const isGif = buf.length >= 6 && buf.subarray(0, 3).toString("ascii") === "GIF";
+  const isWebp = buf.length >= 12 && buf.subarray(0, 4).toString("ascii") === "RIFF" && buf.subarray(8, 12).toString("ascii") === "WEBP";
+  if (!isGif && !isWebp) {
+    throw new Error("Upload the original animated .gif (or .webp) file — chat stills / JPG are not accepted");
+  }
+  if (mime && !mime.includes("gif") && !mime.includes("webp") && !mime.includes("octet-stream")) {
+    // allow octet-stream from some phones if magic bytes check passed
+    if (!isGif && !isWebp) throw new Error("File must be an animated GIF or WebP");
+  }
+  fs.mkdirSync(CELEBRATIONS_DIR, { recursive: true });
+  const ext = isWebp ? "webp" : "gif";
+  // Prefer .gif path for UI; if webp, still write webp and keep gif name only for gif
+  const filename = `tiger-${which}.${ext}`;
+  const dest = path.join(CELEBRATIONS_DIR, filename);
+  fs.writeFileSync(dest, buf);
+  // Also write companion .gif name when gif so overlays keep stable URLs
+  if (isGif) {
+    fs.writeFileSync(path.join(CELEBRATIONS_DIR, `tiger-${which}.gif`), buf);
+  }
+  const url = `/celebrations/${filename}?v=${Date.now()}`;
+  return { url, kind: which, bytes: buf.length, ext };
 }
 
 const DEFAULT_INCREMENTS = [

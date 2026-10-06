@@ -1,0 +1,347 @@
+{
+  "source": "cricheroes_public_profile",
+  "fetchedAt": "2026-09-11T20:45:00.000Z",
+  "notes": [
+    "Snapshot from public CricHeroes team profiles (no developer API).",
+    "CricHeroes blocks automated scrapers with Cloudflare; refresh via Sync after a manual profile check, or replace this seed.",
+    "Upcoming fixtures were 0 on all six teams at capture time — add them under Upcoming for PDF/image export."
+  ],
+  "teams": {
+    "3980746": {
+      "name": "Royal Challengers",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "48" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "23" },
+        { "label": "Lost", "value": "23" },
+        { "label": "Tie", "value": "2" },
+        { "label": "Win%", "value": "50.0%" },
+        { "label": "Toss Won", "value": "27" },
+        { "label": "Bat First", "value": "10" },
+        { "label": "Field First", "value": "17" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Omkar Sinha", "stat": "Inn:29, Runs:274, Avg:11.42, SR:86.44" },
+          { "player": "Rohit V. Abbigeri", "stat": "Inn:30, Runs:271, Avg:10.42, SR:102.65" },
+          { "player": "Ajit", "stat": "Inn:34, Runs:252, Avg:9.00, SR:88.73" }
+        ],
+        "bowling": [
+          { "player": "Yogesh Pandit", "stat": "Inn:37, W:30, Eco:7.79, Avg:10.43" },
+          { "player": "Arun Raghuwanshi", "stat": "Inn:24, W:26, Eco:6.10, Avg:9.38" },
+          { "player": "Nilesh Changade", "stat": "Inn:27, W:20, Eco:6.93, Avg:15.25" }
+        ],
+        "fielding": [
+          { "player": "Omkar Sinha", "stat": "Mat:30, Dis:20, Catches:0, R/O:4" },
+          { "player": "Arun Raghuwanshi", "stat": "Mat:31, Dis:18, Catches:14, R/O:4" }
+        ]
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - Final", "date": "", "venue": "The Life Club Box, Sus, Pune", "score": "20/8 vs 83/1", "result": "Lost by 63 runs vs Royal Warriors", "opponent": "Royal Warriors" },
+          { "tournament": "ACPL SEASON 5 (Men) - Qualifier 2", "date": "", "venue": "The Life Club Box, Sus, Pune", "score": "27/0 vs 26/8", "result": "Won by 8 wickets vs PHOENIX", "opponent": "PHOENIX" },
+          { "tournament": "ACPL SEASON 5 (Men) - Qualifier 1", "date": "", "venue": "The Life Club Box, Sus, Pune", "score": "58/5 vs 66/3", "result": "Lost by 8 runs vs Royal Warriors", "opponent": "Royal Warriors" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Won by 3 wickets vs PHOENIX", "opponent": "PHOENIX" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Won by 6 wickets vs Deccan Knights", "opponent": "Deccan Knights" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Won by 2 wickets vs STRIKERS", "opponent": "STRIKERS" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Yogesh Pandit", "role": "Captain · Steady Batter, Aspirant" },
+        { "name": "Anurag Singh", "role": "PRO · Classicist" },
+        { "name": "Nilesh Changade", "role": "Classicist, Wildcard" },
+        { "name": "Ajit", "role": "Classicist" },
+        { "name": "Khancil Dixit C-1102 Rahul Arcus", "role": "Classicist" },
+        { "name": "Omkar Sinha", "role": "PRO · Classicist" },
+        { "name": "Akshay Ratnaparkhi", "role": "PRO · Steady Batter, Aspirant" },
+        { "name": "Nikhil Deshpande, Arcus", "role": "Steady Batter, Aspirant" },
+        { "name": "Pushkar Sinha", "role": "PRO · Classicist, Wildcard" }
+      ]
+    },
+    "3067973": {
+      "name": "Mavericks",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "54" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "25" },
+        { "label": "Lost", "value": "28" },
+        { "label": "Tie", "value": "1" },
+        { "label": "Win%", "value": "47.2%" },
+        { "label": "Toss Won", "value": "26" },
+        { "label": "Bat First", "value": "7" },
+        { "label": "Field First", "value": "19" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Vishal Ratan Singh", "stat": "Inn:42, Runs:319, Avg:8.62, SR:100.95" },
+          { "player": "Amit Karande", "stat": "Inn:24, Runs:241, Avg:11.48, SR:109.55" },
+          { "player": "Vinit Karande", "stat": "Inn:11, Runs:150, Avg:16.67, SR:109.49" }
+        ],
+        "bowling": [
+          { "player": "Vishal Ratan Singh", "stat": "Inn:36, W:45, Eco:5.48, Avg:8.6" },
+          { "player": "Amit Moon", "stat": "Inn:30, W:30, Eco:5.25, Avg:9.13" },
+          { "player": "Mukesh Singh", "stat": "Inn:15, W:16, Eco:6.53, Avg:10" }
+        ],
+        "fielding": []
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Lost by 12 runs vs Deccan Knights", "opponent": "Deccan Knights" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Lost by 8 runs vs PHOENIX", "opponent": "PHOENIX" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Won by 4 wickets vs Vikings", "opponent": "Vikings" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Won by 5 wickets vs STRIKERS", "opponent": "STRIKERS" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Lost by 29 runs vs Royal Warriors", "opponent": "Royal Warriors" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "", "result": "Lost by 3 runs vs Royal Challengers", "opponent": "Royal Challengers" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Mukesh Singh", "role": "Captain · PRO · Steady Batter, Aspirant" },
+        { "name": "Meher Chandan Rohanekar", "role": "Steady Batter, Aspirant" },
+        { "name": "Siddharth Shawarikar", "role": "" },
+        { "name": "Amit Moon", "role": "Classicist, Wildcard" },
+        { "name": "Parag Bhayani", "role": "" },
+        { "name": "Sudarshan Patil", "role": "Steady Batter, Aspirant" },
+        { "name": "Kunal Arora", "role": "Steady Batter" },
+        { "name": "Siddhanth Parekh", "role": "PRO · Accumulator, Aspirant" },
+        { "name": "Vishal Ratan Singh", "role": "PRO · Accumulator, Wildcard" }
+      ]
+    },
+    "3067975": {
+      "name": "Royal Warriors",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "49" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "27" },
+        { "label": "Lost", "value": "21" },
+        { "label": "Tie", "value": "1" },
+        { "label": "Win%", "value": "56.3%" },
+        { "label": "Toss Won", "value": "16" },
+        { "label": "Bat First", "value": "7" },
+        { "label": "Field First", "value": "9" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Jayant Parkhi", "stat": "Inn:14, Runs:226, Avg:22.60, SR:111.88" },
+          { "player": "Vinit Karande", "stat": "Inn:20, Runs:146, Avg:9.13, SR:83.43" },
+          { "player": "Vishal Ratan Singh", "stat": "Inn:11, Runs:122, Avg:13.56, SR:107.96" },
+          { "player": "Gaurav Mishra", "stat": "Inn:21, Runs:122, Avg:7.18, SR:75.31" },
+          { "player": "Monty Singh", "stat": "Inn:11, Runs:112, Avg:14.00, SR:113.13" }
+        ],
+        "bowling": [
+          { "player": "Jemin Mistry", "stat": "Inn:12, W:27, Eco:4.04, Avg:3.44" },
+          { "player": "Gaurav Mishra", "stat": "Inn:19, W:22, Eco:5.85, Avg:12.5" },
+          { "player": "Mukesh Singh", "stat": "Inn:11, W:19, Eco:4.73, Avg:4.68" },
+          { "player": "Saurabh Sonkar", "stat": "Inn:14, W:19, Eco:6.48, Avg:5.68" },
+          { "player": "Amit Moon", "stat": "Inn:16, W:18, Eco:5.08, Avg:10.44" }
+        ],
+        "fielding": [
+          { "player": "Gaurav Mishra", "stat": "Mat:23, Dis:17, Catches:13, R/O:4" },
+          { "player": "Monty Singh", "stat": "Mat:11, Dis:16, Catches:13, R/O:3" },
+          { "player": "Jayant Parkhi", "stat": "Mat:14, Dis:15, Catches:14, R/O:1" },
+          { "player": "Sagar Jadhav", "stat": "Mat:12, Dis:14, Catches:0, R/O:1" },
+          { "player": "Mandar Hanchate", "stat": "Mat:14, Dis:13, Catches:10, R/O:2" }
+        ]
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - Final", "date": "", "venue": "", "score": "83/1 vs 20/8", "result": "Won by 63 runs vs Royal Challengers", "opponent": "Royal Challengers" },
+          { "tournament": "ACPL SEASON 5 (Men) - Qualifier 1", "date": "", "venue": "", "score": "66/3 vs 58/5", "result": "Won by 8 runs vs Royal Challengers", "opponent": "Royal Challengers" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "52/7 vs 45/7", "result": "Won by 7 runs vs Vikings", "opponent": "Vikings" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "63/8 vs 64/3", "result": "Won by 5 wickets vs Deccan Knights", "opponent": "Deccan Knights" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Rubal", "role": "Captain · PRO · Classicist, Aspirant" },
+        { "name": "Mandar Hanchate", "role": "PRO · Classicist, Aspirant" },
+        { "name": "Sandesh Jain", "role": "PRO · Classicist" },
+        { "name": "Jayant Parkhi", "role": "Classicist" },
+        { "name": "Raghav Sharma", "role": "Steady Batter, Aspirant" },
+        { "name": "Saurabh Sonkar", "role": "Aspirant" },
+        { "name": "Jemin Mistry", "role": "PRO · Steady Batter, Aspirant" },
+        { "name": "Rushikesh Saraf", "role": "Classicist" },
+        { "name": "Vinit Karande", "role": "PRO · Classicist" }
+      ]
+    },
+    "3980744": {
+      "name": "Vikings",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "47" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "25" },
+        { "label": "Lost", "value": "21" },
+        { "label": "Tie", "value": "1" },
+        { "label": "Win%", "value": "54.3%" },
+        { "label": "Toss Won", "value": "25" },
+        { "label": "Bat First", "value": "11" },
+        { "label": "Field First", "value": "14" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Swapnil Matte", "stat": "Inn:47, Runs:396, Avg:9.21, SR:77.95" },
+          { "player": "Siddhanth Parekh", "stat": "Inn:25, Runs:230, Avg:9.58, SR:97.87" },
+          { "player": "Dinesh Patil Rahul Arcus", "stat": "Inn:15, Runs:147, Avg:14.70, SR:131.25" },
+          { "player": "Ashish Pandit", "stat": "Inn:25, Runs:133, Avg:7.82, SR:83.13" },
+          { "player": "Sarvesh Desai", "stat": "Inn:15, Runs:101, Avg:7.77, SR:78.91" }
+        ],
+        "bowling": [
+          { "player": "Ravi", "stat": "Inn:42, W:42, Eco:5.81, Avg:11.76" },
+          { "player": "Ashish Pandit", "stat": "Inn:23, W:34, Eco:6.28, Avg:6.03" },
+          { "player": "Sudarshan Kabra", "stat": "Inn:18, W:17, Eco:5.36, Avg:11.35" },
+          { "player": "Siddhanth Parekh", "stat": "Inn:13, W:17, Eco:6.90, Avg:8.12" },
+          { "player": "Dinesh Patil Rahul Arcus", "stat": "Inn:16, W:15, Eco:5.24, Avg:11" }
+        ],
+        "fielding": [
+          { "player": "Swapnil Matte", "stat": "Mat:47, Dis:21, Catches:10, R/O:3" },
+          { "player": "Siddhanth Parekh", "stat": "Mat:26, Dis:15, Catches:3, R/O:0" },
+          { "player": "Sagar Jadhav", "stat": "Mat:15, Dis:14, Catches:1, R/O:0" },
+          { "player": "Ravi", "stat": "Mat:45, Dis:13, Catches:5, R/O:5" },
+          { "player": "Dinesh Patil Rahul Arcus", "stat": "Mat:16, Dis:12, Catches:7, R/O:4" }
+        ]
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - Eliminator", "date": "", "venue": "", "score": "36/8 vs 42/3", "result": "Lost by 5 wickets vs PHOENIX", "opponent": "PHOENIX" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "76/4 vs 77/4", "result": "Lost by 4 wickets vs STRIKERS", "opponent": "STRIKERS" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "34/5 vs 35/4", "result": "Lost by 4 wickets vs MAVERICKS", "opponent": "MAVERICKS" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "47/5 vs 32/7", "result": "Won by 15 runs vs Deccan Knights", "opponent": "Deccan Knights" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Ravi", "role": "Captain · Steady Batter, Aspirant" },
+        { "name": "Nirav Shah", "role": "" },
+        { "name": "Suchit Awalgaonkar", "role": "PRO · Steady Batter, Aspirant" },
+        { "name": "Swapnil Matte", "role": "PRO · Accumulator" },
+        { "name": "Dinesh Patil Rahul Arcus", "role": "Classicist, Aspirant" },
+        { "name": "Raman Raman", "role": "" },
+        { "name": "Sudarshan Kabra", "role": "PRO · Steady Batter, Aspirant" },
+        { "name": "Laxmikant Mane", "role": "Steady Batter, Aspirant" },
+        { "name": "Sarvesh Desai", "role": "Steady Batter, Aspirant" },
+        { "name": "Sunil Giram A Wing Rahul Arcus", "role": "" }
+      ]
+    },
+    "3067979": {
+      "name": "Phoenix",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "47" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "20" },
+        { "label": "Lost", "value": "26" },
+        { "label": "Tie", "value": "1" },
+        { "label": "Win%", "value": "43.5%" },
+        { "label": "Toss Won", "value": "21" },
+        { "label": "Bat First", "value": "7" },
+        { "label": "Field First", "value": "14" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Prashant Puri", "stat": "Inn:37, Runs:316, Avg:10.19, SR:101.28" },
+          { "player": "Rohit V. Abbigeri", "stat": "Inn:12, Runs:168, Avg:16.80, SR:128.24" },
+          { "player": "Suchit Awalgaonkar", "stat": "Inn:20, Runs:150, Avg:8.82, SR:83.80" },
+          { "player": "Omkar Sinha", "stat": "Inn:12, Runs:121, Avg:13.44, SR:91.67" },
+          { "player": "Ajit", "stat": "Inn:11, Runs:99, Avg:11.00, SR:98.02" }
+        ],
+        "bowling": [
+          { "player": "Prashant Puri", "stat": "Inn:31, W:29, Eco:5.09, Avg:9.79" },
+          { "player": "Suchit Awalgaonkar", "stat": "Inn:22, W:28, Eco:5.76, Avg:11" },
+          { "player": "Amit Deshmukh", "stat": "Inn:22, W:20, Eco:6.19, Avg:14.85" },
+          { "player": "Bibhu Prasad Panda", "stat": "Inn:19, W:18, Eco:7.68, Avg:9.39" },
+          { "player": "Ashish Pandit", "stat": "Inn:11, W:17, Eco:5.83, Avg:8.06" }
+        ],
+        "fielding": [
+          { "player": "Prashant Puri", "stat": "Mat:40, Dis:26, Catches:19, R/O:4" },
+          { "player": "Bibhu Prasad Panda", "stat": "Mat:23, Dis:14, Catches:0, R/O:3" },
+          { "player": "Shahaji Dhumal", "stat": "Mat:47, Dis:14, Catches:9, R/O:4" },
+          { "player": "Suchit Awalgaonkar", "stat": "Mat:24, Dis:12, Catches:10, R/O:1" },
+          { "player": "Omkar Sinha", "stat": "Mat:13, Dis:11, Catches:1, R/O:2" }
+        ]
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - Qualifier 2", "date": "", "venue": "", "score": "26/8 vs 27/0", "result": "Lost by 8 wickets vs Royal Challengers", "opponent": "Royal Challengers" },
+          { "tournament": "ACPL SEASON 5 (Men) - Eliminator", "date": "", "venue": "", "score": "36/8 vs 42/3", "result": "Won by 5 wickets vs Vikings", "opponent": "Vikings" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "35/7 vs 36/5", "result": "Lost by 3 wickets vs Royal Challengers", "opponent": "Royal Challengers" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "29/8 vs 30/2", "result": "Lost by 6 wickets vs Royal Warriors", "opponent": "Royal Warriors" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Shahaji Dhumal", "role": "Captain · PRO · Steady Batter" },
+        { "name": "Prashant A", "role": "PRO · Steady Batter" },
+        { "name": "Rohit V. Abbigeri", "role": "PRO · Accumulator, Aspirant" },
+        { "name": "Amol Khodke", "role": "PRO · Classicist, Aspirant" },
+        { "name": "Prashant Puri", "role": "PRO · Classicist, Aspirant" },
+        { "name": "SAURABH", "role": "Steady Batter" },
+        { "name": "Bibhu Prasad Panda", "role": "Steady Batter, Aspirant" },
+        { "name": "Raghav", "role": "Accumulator, Aspirant" },
+        { "name": "Yogesh Potdar", "role": "" }
+      ]
+    },
+    "3067980": {
+      "name": "Strikers",
+      "location": "Pune",
+      "stats": [
+        { "label": "Matches", "value": "41" },
+        { "label": "Upcoming", "value": "0" },
+        { "label": "Won", "value": "20" },
+        { "label": "Lost", "value": "21" },
+        { "label": "Tie", "value": "0" },
+        { "label": "Win%", "value": "48.8%" },
+        { "label": "Toss Won", "value": "24" },
+        { "label": "Bat First", "value": "11" },
+        { "label": "Field First", "value": "13" }
+      ],
+      "leaderboard": {
+        "batting": [
+          { "player": "Jayant Parkhi", "stat": "Inn:33, Runs:453, Avg:19.70, SR:113.82" },
+          { "player": "Gaurav Pillai", "stat": "Inn:30, Runs:277, Avg:11.54, SR:89.94" },
+          { "player": "Pushkar Sinha", "stat": "Inn:18, Runs:117, Avg:16.71, SR:76.97" },
+          { "player": "Nishant Zunzunwala", "stat": "Inn:18, Runs:91, Avg:5.35, SR:73.39" },
+          { "player": "Aradhya Deshmukh", "stat": "Inn:16, Runs:87, Avg:6.09, SR:73.63" }
+        ],
+        "bowling": [
+          { "player": "Pushkar Sinha", "stat": "Inn:21, W:34, Eco:4.49, Avg:6.47" },
+          { "player": "Gaurav Pillai", "stat": "Inn:26, W:28, Eco:4.39, Avg:7.71" },
+          { "player": "Aradhya Deshmukh", "stat": "Inn:20, W:28, Eco:4.44, Avg:6" },
+          { "player": "Nilesh Changade", "stat": "Inn:10, W:17, Eco:5.67, Avg:6.06" },
+          { "player": "Ravi", "stat": "Inn:7, W:14, Eco:4.49, Avg:6.79" }
+        ],
+        "fielding": [
+          { "player": "Jayant Parkhi", "stat": "Mat:33, Dis:38, Catches:18, R/O:5" },
+          { "player": "Bibhu Prasad Panda", "stat": "Mat:8, Dis:12, Catches:0, R/O:3" },
+          { "player": "Aradhya Deshmukh", "stat": "Mat:20, Dis:10, Catches:7, R/O:3" },
+          { "player": "Harshad Dewate", "stat": "Mat:8, Dis:9, Catches:6, R/O:3" },
+          { "player": "Prasad Kale KP45", "stat": "Mat:11, Dis:9, Catches:8, R/O:1" }
+        ]
+      },
+      "matches": {
+        "past": [
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "76/4 vs 77/4", "result": "Won by 4 wickets vs Vikings", "opponent": "Vikings" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "35/8 vs 39/6", "result": "Lost by 2 wickets vs Royal Challengers", "opponent": "Royal Challengers" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "31/7 vs 32/3", "result": "Lost by 5 wickets vs MAVERICKS", "opponent": "MAVERICKS" },
+          { "tournament": "ACPL SEASON 5 (Men) - League", "date": "", "venue": "", "score": "55/6 vs 21/8", "result": "Won by 34 runs vs Deccan Knights", "opponent": "Deccan Knights" }
+        ],
+        "upcoming": []
+      },
+      "members": [
+        { "name": "Gaurav Pillai", "role": "Captain · PRO · Accumulator, Wildcard" },
+        { "name": "Dayanand Patil", "role": "Steady Batter, Aspirant" },
+        { "name": "Mitesh Kumar", "role": "Steady Batter" },
+        { "name": "Anagh Garg", "role": "" },
+        { "name": "Harshad Dewate", "role": "Steady Batter, Aspirant" },
+        { "name": "Nishant Zunzunwala", "role": "PRO · Classicist" },
+        { "name": "Aradhya Deshmukh", "role": "PRO · Steady Batter, Wildcard" },
+        { "name": "Hrishikesh Joshi", "role": "PRO · Classicist, Aspirant" },
+        { "name": "Sagar Jadhav", "role": "Classicist, Aspirant" }
+      ]
+    }
+  }
+}

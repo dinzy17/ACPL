@@ -184,7 +184,7 @@ async function handleCelebrationUpload(req, res) {
         }
       }
     }
-    sendJson(res, 200, { ok: true, celebration: saved, admin: adminState(store) });
+    sendJson(res, 200, { ok: true, celebration: saved, celebrations: store.meta.celebrations });
   } catch (e) {
     sendJson(res, 400, { ok: false, error: e.message || "Upload failed" });
   }

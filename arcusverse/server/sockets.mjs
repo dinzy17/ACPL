@@ -128,10 +128,39 @@ function attachOwner(socket, store, auction, persist) {
 
 const STAFF = ["super", "admin", "auctioneer"];
 
+function countAuctionViewers(io, auctionId) {
+  let spectators = 0;
+  let owners = 0;
+  let staff = 0;
+  if (!auctionId) return { auctionId: null, spectators: 0, owners: 0, staff: 0, viewers: 0 };
+  for (const sock of io.sockets.sockets.values()) {
+    if (sock.data?.auctionId !== auctionId) continue;
+    const role = sock.data.role;
+    if (role === "spectator") spectators += 1;
+    else if (role === "owner") owners += 1;
+    else if (STAFF.includes(role)) staff += 1;
+  }
+  return {
+    auctionId,
+    spectators,
+    owners,
+    staff,
+    viewers: spectators + owners,
+    at: Date.now()
+  };
+}
+
 export function attachSockets(io, store, urls) {
   const persist = () => saveStore(store);
   const advertise = urls && urls.appUrl ? urls : { mode: "lan", appUrl: null, appUrls: [], spectatorUrls: [], lan: Array.isArray(urls) ? urls : [] };
   const lan = advertise.lan || [];
+
+  const emitViewerStats = (auctionId) => {
+    if (!auctionId) return;
+    const stats = countAuctionViewers(io, auctionId);
+    io.to("admin").emit("viewer-stats", stats);
+    io.to("auction:" + auctionId).emit("viewer-stats", stats);
+  };
 
   const broadcast = (auctionId) => {
     const auction = findAuction(store, auctionId);
@@ -152,6 +181,7 @@ export function attachSockets(io, store, urls) {
       sock.emit("lot", lot);
     }
     io.to("admin").emit("admin-state", adminState(store));
+    emitViewerStats(auction.id);
   };
 
   setInterval(() => {
@@ -161,6 +191,18 @@ export function attachSockets(io, store, urls) {
       for (const id of ids) broadcast(id);
     }
   }, 250);
+
+  // Keep staff spectator counts fresh even if a client misses an event
+  setInterval(() => {
+    const seen = new Set();
+    for (const sock of io.sockets.sockets.values()) {
+      const id = sock.data?.auctionId;
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        emitViewerStats(id);
+      }
+    }
+  }, 10000);
 
   io.on("connection", (socket) => {
     socket.emit("hello", {
@@ -187,6 +229,7 @@ export function attachSockets(io, store, urls) {
           socket.data.auctionId = auction.id;
           socket.join("auction:" + auction.id);
           cb?.({ ok: true, role: "spectator", public: publicState(store, auction.id) });
+          emitViewerStats(auction.id);
           return;
         }
 
@@ -217,8 +260,10 @@ export function attachSockets(io, store, urls) {
             auctionId: auction?.id || null,
             admin: adminState(store),
             public: auction ? publicState(store, auction.id) : null,
+            viewers: auction ? countAuctionViewers(io, auction.id) : null,
             redirect: user.role === "auctioneer" ? "/auctioneer" : "/admin"
           });
+          if (auction) emitViewerStats(auction.id);
           return;
         }
 
@@ -257,6 +302,7 @@ export function attachSockets(io, store, urls) {
             public: auction ? publicState(store, auction.id) : null,
             redirect: "/owner"
           });
+          if (auction) emitViewerStats(auction.id);
           return;
         }
 
@@ -286,7 +332,8 @@ export function attachSockets(io, store, urls) {
           socket.join("auction:" + auction.id);
           socket.data.auctionId = auction.id;
         }
-        cb?.({ ok: true, ...ok(store, auction.id) });
+        cb?.({ ok: true, ...ok(store, auction.id), viewers: countAuctionViewers(io, auction.id) });
+        emitViewerStats(auction.id);
       } catch (e) {
         cb?.({ ok: false, error: e.message });
       }
@@ -297,11 +344,20 @@ export function attachSockets(io, store, urls) {
         requireRole(socket, ["owner"]);
         const teamId = socket.data.teamId;
         if (!teamId) throw new Error("No team linked");
+        const prevAuctionId = socket.data.auctionId;
         socket.data.auctionId = null;
         cb?.({ ok: true, home: ownerHome(store, teamId) });
+        if (prevAuctionId) emitViewerStats(prevAuctionId);
       } catch (e) {
         cb?.({ ok: false, error: e.message });
       }
+    });
+
+    socket.on("disconnect", () => {
+      const auctionId = socket.data?.auctionId;
+      setTimeout(() => {
+        if (auctionId) emitViewerStats(auctionId);
+      }, 0);
     });
 
     const wrap = (fn) => (payload, cb) => {
@@ -366,6 +422,21 @@ export function attachSockets(io, store, urls) {
         io.to("admin").emit("admin-state", adminState(store));
         return { admin: adminState(store) };
       })
+    );
+
+    socket.on(
+      "get-viewer-stats",
+      (payload, cb) => {
+        try {
+          requireRole(socket, STAFF);
+          const p = payload || {};
+          const auction = findAuction(store, p.auctionId || socket.data.auctionId);
+          if (!auction) throw new Error("Auction not found");
+          cb?.({ ok: true, ...countAuctionViewers(io, auction.id) });
+        } catch (e) {
+          cb?.({ ok: false, error: e.message });
+        }
+      }
     );
 
     /** Only patches auction.youtubeLiveUrl — never touches purse, teams, live state, etc. */

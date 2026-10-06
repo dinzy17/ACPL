@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
 import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay, UnsoldOverlay } from "@/components/AuctionBits";
 import { YoutubeLivePanel } from "@/components/YoutubeLivePanel";
+import { LiveSpectatorBadge } from "@/components/LiveSpectatorBadge";
 import { useApp } from "@/components/Providers";
 import { inr, beep, crToLakhs, lakhsToCr } from "@/lib/format";
 
@@ -525,7 +526,8 @@ export function LiveBoard({
       )}
 
       {mode === "auctioneer" && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveSpectatorBadge auctionId={aid} />
           <Button variant="lime" onClick={() => act("start-auction")}>
             {auction.status === "live" || auction.status === "paused" ? "Reset live auction" : "Start auction"}
           </Button>

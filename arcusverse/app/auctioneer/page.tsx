@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Shell, Card, Button } from "@/components/ui";
 import { useApp } from "@/components/Providers";
 import { LiveBoard } from "@/components/LiveBoard";
+import { LiveSpectatorBadge } from "@/components/LiveSpectatorBadge";
 import { beep } from "@/lib/format";
 
 export default function AuctioneerPage() {
@@ -100,7 +101,8 @@ export default function AuctioneerPage() {
 
   return (
     <Shell title="Auctioneer dashboard" subtitle={state.auction.name} showLogout>
-      <div className="mb-4 flex flex-wrap gap-2 print:hidden">
+      <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
+        <LiveSpectatorBadge auctionId={auctionId || state.auction.id} />
         <Button onClick={() => setShowUrls(true)}>Spectator URL</Button>
         {role !== "auctioneer" && (
           <Link className="btn btn-ghost px-5 py-2.5 text-sm" href="/admin">

@@ -163,32 +163,34 @@ function resolveFfmpeg() {
   return null;
 }
 
-/** Sample top-left green-screen pixel from the first frame. */
-function sampleCornerColor(ffmpeg, inputPath) {
+/** Sample top-left green-screen pixel from the first frame — unused after in-place bake. */
+function sampleCornerColor() {
+  return null;
+}
+
+/**
+ * Prefer Python in-place green→bg bake (no chromakey alpha holes on the face).
+ * Falls back to opaque ffmpeg compress without keying if Python bake is unavailable.
+ */
+function bakeCelebrationWithPython(inputPath, outputPath, kind) {
+  const script = path.join(__dirname, "..", "scripts", "bake_celebration.py");
+  if (!fs.existsSync(script)) return false;
   try {
-    const raw = execFileSync(
-      ffmpeg,
-      ["-i", inputPath, "-vframes", "1", "-vf", "crop=1:1:12:12", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"],
-      { encoding: "buffer", maxBuffer: 64, stdio: ["ignore", "pipe", "ignore"], timeout: 30000 }
-    );
-    if (!raw || raw.length < 3) return null;
-    const r = raw[0];
-    const g = raw[1];
-    const b = raw[2];
-    // Only treat as chroma key if the corner is clearly green
-    if (!(g > 80 && g > r + 20 && g > b + 20)) return null;
-    const hex = ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
-    const sim = g > 160 ? "0.14" : "0.09";
-    return { hex, sim };
+    execFileSync("python3", [script, inputPath, outputPath, "--kind", kind], {
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 300000
+    });
+    return fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000;
   } catch {
-    return null;
+    return false;
   }
 }
 
 /**
  * Compress animated GIF/WebP for overlay use while keeping motion.
- * Keys out green screen, then composites onto a solid overlay-matching
- * background (avoids GIF transparency holes that distort the tiger face).
+ * Avoids chromakey transparency — that punches holes in the tiger muzzle
+ * (green spill). Python bake replaces strong green pixels in-place onto a
+ * solid modal-matching background; otherwise keep an opaque compress.
  */
 function optimizeCelebrationGif(buf, kind = "sold") {
   const ffmpeg = resolveFfmpeg();
@@ -199,26 +201,19 @@ function optimizeCelebrationGif(buf, kind = "sold") {
   const output = path.join(dir, "out.gif");
   try {
     fs.writeFileSync(input, buf);
-    const key = sampleCornerColor(ffmpeg, input);
-    // Soft blend preserves muzzle/face; bake into modal-matching background
-    const sim = key ? (which === "unsold" ? "0.075" : key.sim) : null;
-    const blend = which === "unsold" ? "0.15" : "0.12";
-    const keyHex = key?.hex || (which === "unsold" ? "3B8445" : "11B533");
-    const bg = which === "unsold" ? "0x0f172a" : "0xdbeafe";
-    const keyFilter = sim
-      ? `chromakey=0x${keyHex}:${sim}:${blend},format=rgba`
-      : "format=rgba";
+    if (bakeCelebrationWithPython(input, output, which)) {
+      const out = fs.readFileSync(output);
+      if (out.length > 1000) return out;
+    }
+    // Fallback: opaque compress only — keep green screen rather than eat the face
     execFileSync(
       ffmpeg,
       [
         "-y",
         "-i",
         input,
-        "-filter_complex",
-        `[0:v]fps=12,scale=480:-1:flags=lanczos,${keyFilter},setpts=PTS-STARTPTS[fg];` +
-          `color=c=${bg}:s=480x270:r=12[bg];` +
-          `[bg][fg]overlay=(W-w)/2:(H-h)/2:shortest=1:format=auto,split[s0][s1];` +
-          `[s0]palettegen=stats_mode=diff:max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=2`,
+        "-vf",
+        "fps=12,scale='min(480,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=full:max_colors=256[p];[s1][p]paletteuse=dither=none",
         "-loop",
         "0",
         output

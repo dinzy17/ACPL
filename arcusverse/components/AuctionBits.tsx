@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ROLE_META, inr } from "@/lib/format";
 import { AcplStatsCard } from "@/components/AcplStats";
 
@@ -29,8 +29,8 @@ export function Confetti({ show }: { show: boolean }) {
   );
 }
 
-/** Green-screen tiger celebration assets (chroma-keyed at draw time). */
-function ChromaTiger({
+/** Animated celebration GIFs (transparent / green already keyed out). */
+function TigerGif({
   src,
   alt,
   className = "",
@@ -41,58 +41,13 @@ function ChromaTiger({
   className?: string;
   mood?: "sold" | "unsold";
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const img = new Image();
-    img.decoding = "async";
-    img.onload = () => {
-      if (cancelled) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-      const frame = ctx.getImageData(0, 0, w, h);
-      const d = frame.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i];
-        const g = d[i + 1];
-        const b = d[i + 2];
-        // Bright chroma green: G dominates R/B (works for #00b140–#4CAF50 screens)
-        const maxRB = Math.max(r, b);
-        const greenness = g - maxRB;
-        if (g > 85 && greenness > 28 && g > r * 1.15 && g > b * 1.15) {
-          if (greenness > 55) {
-            d[i + 3] = 0;
-          } else {
-            d[i + 3] = Math.max(0, Math.min(255, Math.round(((greenness - 28) / 27) * -255 + 255)));
-          }
-        }
-      }
-      ctx.putImageData(frame, 0, 0);
-      setReady(true);
-    };
-    img.onerror = () => setReady(false);
-    img.src = src;
-    return () => {
-      cancelled = true;
-    };
-  }, [src]);
-
   return (
-    <canvas
-      ref={canvasRef}
-      role="img"
-      aria-label={alt}
-      className={`tiger-mascot tiger-mascot-${mood} ${ready ? "opacity-100" : "opacity-0"} ${className}`}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      draggable={false}
+      className={`tiger-mascot tiger-mascot-${mood} ${className}`}
     />
   );
 }
@@ -119,8 +74,8 @@ export function SoldOverlay({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <ChromaTiger
-          src="/celebrations/tiger-sold.jpg"
+        <TigerGif
+          src="/celebrations/tiger-sold.gif"
           alt="Tiger celebrating sold"
           mood="sold"
           className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"
@@ -153,8 +108,8 @@ export function UnsoldOverlay({ show, onDismiss }: { show: boolean; onDismiss?: 
         className="relative flex min-h-[320px] w-[min(92vw,560px)] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-6 text-center shadow-2xl sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        <ChromaTiger
-          src="/celebrations/tiger-unsold.jpg"
+        <TigerGif
+          src="/celebrations/tiger-unsold.gif"
           alt="Tiger disappointed unsold"
           mood="unsold"
           className="h-[210px] w-auto max-w-[min(90vw,420px)] object-contain sm:h-[260px]"

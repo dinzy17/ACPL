@@ -575,7 +575,13 @@ export function LiveBoard({
         </p>
       )}
 
-      <YoutubeLivePanel auctionId={aid} url={auction?.youtubeLiveUrl} />
+      <YoutubeLivePanel
+        auctionId={aid}
+        url={auction?.youtubeLiveUrl}
+        canEdit={mode === "auctioneer"}
+        emit={emit}
+        onPublic={onPublic}
+      />
 
       <div
         className={

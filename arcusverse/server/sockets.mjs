@@ -368,6 +368,21 @@ export function attachSockets(io, store, urls) {
       })
     );
 
+    /** Only patches auction.youtubeLiveUrl — never touches purse, teams, live state, etc. */
+    socket.on(
+      "set-youtube-live",
+      wrap((p) => {
+        requireRole(socket, STAFF);
+        const auction = findAuction(store, p.auctionId || socket.data.auctionId);
+        if (!auction) throw new Error("Auction not found");
+        auction.youtubeLiveUrl = normalizeYoutubeLiveUrl(p.youtubeLiveUrl);
+        persist();
+        broadcast(auction.id);
+        io.to("admin").emit("admin-state", adminState(store));
+        return ok(store, auction.id);
+      })
+    );
+
     socket.on(
       "upsert-user",
       wrap((p) => {

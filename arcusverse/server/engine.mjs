@@ -720,7 +720,7 @@ export function markSold(store, auctionId, override = {}) {
   live.remainingPlayerIds = live.remainingPlayerIds.filter((id) => id !== player.id);
   closeLotClock(live, player.id);
   live.history.push({ type: "sold", ...row });
-  live.celebration = { playerId: player.id, teamId, soldPrice, at: Date.now() };
+  live.celebration = { type: "sold", playerId: player.id, teamId, soldPrice, at: Date.now() };
   live.phase = "idle";
   live.currentPlayerId = null;
   live.currentBid = 0;
@@ -754,7 +754,7 @@ export function markUnsold(store, auctionId) {
   live.currentBid = 0;
   live.lastBidTeamId = null;
   live.timerEndsAt = null;
-  live.celebration = null;
+  live.celebration = { type: "unsold", playerId, at: Date.now() };
   if (!live.remainingPlayerIds.length) {
     live.phase = "done";
     live.offerEnd = true;

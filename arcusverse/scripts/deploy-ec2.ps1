@@ -31,6 +31,8 @@ Push-Location $root
   --exclude="data/store.json" `
   --exclude="data/private-uploads" `
   --exclude="public/uploads" `
+  --exclude="public/celebrations/*.gif" `
+  --exclude="public/celebrations/*.webp" `
   .
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "tar failed" }
 Pop-Location
@@ -66,12 +68,16 @@ fi
 node -v
 npm -v
 
-echo "Extracting (preserving data/store.json)..."
+echo "Extracting (preserving data/store.json, celebrations)..."
 mkdir -p /home/ec2-user/ArcusVerse
 cd /home/ec2-user/ArcusVerse
 TS=`$(date +%Y%m%d-%H%M%S)
 if [[ -f data/store.json ]]; then
   cp -a data/store.json "/home/ec2-user/store.json.predeploy.$${TS}"
+fi
+if [[ -d public/celebrations ]]; then
+  mkdir -p "/home/ec2-user/celebrations.predeploy.$${TS}"
+  cp -a public/celebrations/. "/home/ec2-user/celebrations.predeploy.$${TS}/" || true
 fi
 tar -xzf /home/ec2-user/arcusverse-deploy.tgz
 rm -f /home/ec2-user/arcusverse-deploy.tgz
@@ -80,6 +86,11 @@ if [[ -f "/home/ec2-user/store.json.predeploy.$${TS}" ]]; then
   echo "Restoring preserved store.json from pre-deploy backup (bytes=`$(wc -c < /home/ec2-user/store.json.predeploy.$${TS}))"
   mkdir -p data
   cp -a "/home/ec2-user/store.json.predeploy.$${TS}" data/store.json
+fi
+if [[ -d "/home/ec2-user/celebrations.predeploy.$${TS}" ]]; then
+  echo "Restoring preserved celebration assets"
+  mkdir -p public/celebrations
+  cp -a "/home/ec2-user/celebrations.predeploy.$${TS}/." public/celebrations/
 fi
 
 NODE_BIN=`$(command -v node)

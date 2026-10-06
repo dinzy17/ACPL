@@ -27,7 +27,7 @@ cp "$PEM" "$PEM_USE"
 chmod 600 "$PEM_USE"
 SSH_OPTS=(-i "$PEM_USE" -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes)
 
-echo "Packing $ROOT (code only — production data/ is preserved on the server) ..."
+echo "Packing $ROOT (code only — production data/celebrations are preserved on the server) ..."
 tar -C "$ROOT" -czf "$BUNDLE" \
   --exclude=node_modules \
   --exclude=.next \
@@ -38,6 +38,8 @@ tar -C "$ROOT" -czf "$BUNDLE" \
   --exclude='data/private-uploads/*' \
   --exclude='public/uploads' \
   --exclude='public/uploads/*' \
+  --exclude='public/celebrations/*.gif' \
+  --exclude='public/celebrations/*.webp' \
   .
 
 echo "Uploading to $REMOTE ..."
@@ -47,13 +49,17 @@ scp "${SSH_OPTS[@]}" "$ROOT/deploy/arcusverse.service" "${REMOTE}:/home/ec2-user
 ssh "${SSH_OPTS[@]}" "$REMOTE" bash -s <<EOF
 set -euo pipefail
 PUBLIC_URL='$PUBLIC_URL'
-echo "Extracting (preserving data/store.json, uploads, private-uploads)..."
+echo "Extracting (preserving data/store.json, uploads, celebrations)..."
 mkdir -p /home/ec2-user/ArcusVerse
 cd /home/ec2-user/ArcusVerse
-# Backup live data before extract — production store must never be wiped by deploy
+# Backup live data before extract — production store/celebrations must never be wiped by deploy
 TS=\$(date +%Y%m%d-%H%M%S)
 if [[ -f data/store.json ]]; then
   cp -a data/store.json "/home/ec2-user/store.json.predeploy.\$TS"
+fi
+if [[ -d public/celebrations ]]; then
+  mkdir -p "/home/ec2-user/celebrations.predeploy.\$TS"
+  cp -a public/celebrations/. "/home/ec2-user/celebrations.predeploy.\$TS/" || true
 fi
 tar -xzf /home/ec2-user/arcusverse-deploy.tgz
 rm -f /home/ec2-user/arcusverse-deploy.tgz
@@ -62,6 +68,12 @@ if [[ -f "/home/ec2-user/store.json.predeploy.\$TS" ]]; then
   echo "Restoring preserved store.json from pre-deploy backup (bytes=\$(wc -c < /home/ec2-user/store.json.predeploy.\$TS))"
   mkdir -p data
   cp -a "/home/ec2-user/store.json.predeploy.\$TS" data/store.json
+fi
+# Restore celebration GIFs uploaded in production
+if [[ -d "/home/ec2-user/celebrations.predeploy.\$TS" ]]; then
+  echo "Restoring preserved celebration assets"
+  mkdir -p public/celebrations
+  cp -a "/home/ec2-user/celebrations.predeploy.\$TS/." public/celebrations/
 fi
 
 NODE_BIN=\$(command -v node)

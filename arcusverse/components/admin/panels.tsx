@@ -1082,6 +1082,7 @@ export function AuctionsPanel({ admin, emit }: any) {
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [maxByBase, setMaxByBase] = useState<Record<string, string>>({});
+  const [youtubeLiveUrl, setYoutubeLiveUrl] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const editingId = useRef("");
@@ -1167,6 +1168,7 @@ export function AuctionsPanel({ admin, emit }: any) {
     setSequence("random");
     setIncRows(defaultIncrementRows());
     setMaxByBase({});
+    setYoutubeLiveUrl("");
     setErr("");
     setNote("New auction");
     if (tournamentId) applyRoster(tournamentId);
@@ -1195,6 +1197,7 @@ export function AuctionsPanel({ admin, emit }: any) {
         teamIds,
         playerIds,
         increments: parseIncrements(),
+        youtubeLiveUrl: youtubeLiveUrl.trim(),
         maxByBasePrice: (() => {
           const next: Record<string, number> = {};
           const existing =
@@ -1252,6 +1255,7 @@ export function AuctionsPanel({ admin, emit }: any) {
       Object.fromEntries(Object.entries(a.maxByBasePrice || {}).map(([k, v]) => [String(Number(k)), String(v)]))
     );
     setIncRows(incrementsToRows(a.increments));
+    setYoutubeLiveUrl(a.youtubeLiveUrl || "");
     setErr("");
     setNote(`Editing ${a.name}`);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
@@ -1335,6 +1339,17 @@ export function AuctionsPanel({ admin, emit }: any) {
           <option value="random">Random shuffle</option>
           <option value="category">Category-wise shuffle</option>
         </Select>
+        <Field
+          className="md:col-span-3"
+          label="YouTube Live link (optional)"
+          value={youtubeLiveUrl}
+          onChange={(e) => setYoutubeLiveUrl(e.target.value)}
+          placeholder="https://www.youtube.com/watch?v=… or youtube.com/live/…"
+        />
+        <p className="md:col-span-3 -mt-2 text-xs" style={{ color: "var(--muted)" }}>
+          Shown on the hammer desk for auctioneer, owners, spectators, and admin. Viewers can hide/show the
+          video locally without changing this setting.
+        </p>
         <div className="md:col-span-3 space-y-3">
           <p className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
             Bid increments — range in crores, step in lakhs

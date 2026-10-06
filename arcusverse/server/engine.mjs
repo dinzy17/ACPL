@@ -312,7 +312,9 @@ export function publicState(store, auctionId) {
       categoryId: auction.categoryId,
       tournamentId: auction.tournamentId,
       sport: store.tournaments.find((t) => t.id === auction.tournamentId)?.sport || "Cricket",
-      liveBidding: store.meta.liveBidding === true
+      liveBidding: store.meta.liveBidding === true,
+      // Additive optional field — absent on older auctions
+      youtubeLiveUrl: auction.youtubeLiveUrl || ""
     },
     categories: store.categories,
     teams: teams.map((t) => ({

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
 import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay, UnsoldOverlay } from "@/components/AuctionBits";
+import { YoutubeLivePanel } from "@/components/YoutubeLivePanel";
 import { useApp } from "@/components/Providers";
 import { inr, beep, crToLakhs, lakhsToCr } from "@/lib/format";
 
@@ -474,12 +475,15 @@ export function LiveBoard({
 
   if (notStarted && mode !== "auctioneer") {
     return (
-      <Card className="mx-auto max-w-xl py-16 text-center">
-        <p className="font-display text-5xl">Auction not started</p>
-        <p className="mt-3 text-[var(--muted)]">
-          The Auctioneer hasn&apos;t started the auction yet. Please contact the auctioneer or wait for it to start.
-        </p>
-      </Card>
+      <div className="space-y-4">
+        <YoutubeLivePanel auctionId={aid} url={auction?.youtubeLiveUrl} />
+        <Card className="mx-auto max-w-xl py-16 text-center">
+          <p className="font-display text-5xl">Auction not started</p>
+          <p className="mt-3 text-[var(--muted)]">
+            The Auctioneer hasn&apos;t started the auction yet. Please contact the auctioneer or wait for it to start.
+          </p>
+        </Card>
+      </div>
     );
   }
 
@@ -570,6 +574,8 @@ export function LiveBoard({
           {err}
         </p>
       )}
+
+      <YoutubeLivePanel auctionId={aid} url={auction?.youtubeLiveUrl} />
 
       <div
         className={

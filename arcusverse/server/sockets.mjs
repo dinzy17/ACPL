@@ -18,6 +18,7 @@ import {
 } from "./engine.mjs";
 import { uid, pin4, hashPw, saveUpload, saveCelebrationGif, saveStore, DEFAULT_INCREMENTS, publicUser } from "./store.mjs";
 import { buildAuctionFixture } from "./schedule.mjs";
+import { normalizeYoutubeLiveUrl } from "../lib/youtube.mjs";
 import { importAcplHistory, defaultAcplDataRoot, findAcplPlayer, acplCareerSummary } from "./acpl.mjs";
 import {
   applyAcpl6CricheroesLinks,
@@ -1085,6 +1086,10 @@ export function attachSockets(io, store, urls) {
         if (p.timerSeconds != null && p.timerSeconds !== "") {
           body.timerSeconds = Number(p.timerSeconds) || 20;
         }
+        // Additive: only touch youtubeLiveUrl when the client explicitly sends it
+        if (Object.prototype.hasOwnProperty.call(p, "youtubeLiveUrl")) {
+          body.youtubeLiveUrl = normalizeYoutubeLiveUrl(p.youtubeLiveUrl);
+        }
         const code = p.code ? String(p.code).slice(0, 8).toUpperCase() : "";
         let i = p.id ? store.auctions.findIndex((a) => a.id === p.id) : -1;
         if (i < 0 && code) i = store.auctions.findIndex((a) => String(a.code).toUpperCase() === code);
@@ -1100,7 +1105,9 @@ export function attachSockets(io, store, urls) {
             // Never drop existing config when the client omits these fields
             minByCategory: body.minByCategory ?? prev.minByCategory ?? {},
             timerSeconds: body.timerSeconds ?? prev.timerSeconds ?? 20,
-            maxByBasePrice: body.maxByBasePrice ?? prev.maxByBasePrice ?? {}
+            maxByBasePrice: body.maxByBasePrice ?? prev.maxByBasePrice ?? {},
+            youtubeLiveUrl:
+              body.youtubeLiveUrl !== undefined ? body.youtubeLiveUrl : prev.youtubeLiveUrl || ""
           };
         } else {
           store.auctions.push({
@@ -1111,6 +1118,7 @@ export function attachSockets(io, store, urls) {
             minByCategory: body.minByCategory || {},
             timerSeconds: body.timerSeconds ?? 20,
             maxByBasePrice: body.maxByBasePrice || {},
+            youtubeLiveUrl: body.youtubeLiveUrl || "",
             ...body
           });
         }

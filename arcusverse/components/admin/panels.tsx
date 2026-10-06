@@ -1566,6 +1566,7 @@ export function SettingsPanel({ staff, admin, emit }: any) {
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<"sold" | "unsold" | "">("");
+  const [progress, setProgress] = useState(0);
 
   const toggleLive = async () => {
     await emit("set-live-bidding", { enabled: !liveBidding });
@@ -1576,6 +1577,7 @@ export function SettingsPanel({ staff, admin, emit }: any) {
     try {
       setErr("");
       setNote("");
+      setProgress(0);
       setBusy(kind);
       const name = file.name.toLowerCase();
       if (!name.endsWith(".gif") && !name.endsWith(".webp") && !file.type.includes("gif") && !file.type.includes("webp")) {
@@ -1584,15 +1586,51 @@ export function SettingsPanel({ staff, admin, emit }: any) {
       if (file.size > 40 * 1024 * 1024) {
         throw new Error("GIF is too large (max 40 MB). Please compress it and try again.");
       }
-      setNote(`Uploading ${kind} GIF${file.size > 2 * 1024 * 1024 ? " (large file — compressing on server)…" : "…"}`);
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(new Error("Could not read file"));
-        reader.readAsDataURL(file);
+
+      let auth: { username?: string; password?: string } = {};
+      try {
+        auth = JSON.parse(sessionStorage.getItem("arcus-auth") || "{}");
+      } catch {
+        auth = {};
+      }
+      if (!auth.username || !auth.password) {
+        throw new Error("Sign in again, then retry the upload");
+      }
+
+      setNote(`Uploading ${kind} GIF…`);
+      const saved: any = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `/api/admin/celebrations/${kind}`);
+        xhr.timeout = 300000;
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("X-Arcus-Username", String(auth.username));
+        xhr.setRequestHeader("X-Arcus-Password", String(auth.password));
+        xhr.upload.onprogress = (ev) => {
+          if (!ev.lengthComputable) return;
+          const pct = Math.max(1, Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
+          setProgress(pct);
+          setNote(`Uploading ${kind} GIF… ${pct}%`);
+        };
+        xhr.onload = () => {
+          let body: any = {};
+          try {
+            body = JSON.parse(xhr.responseText || "{}");
+          } catch {
+            body = {};
+          }
+          if (xhr.status >= 200 && xhr.status < 300 && body.ok !== false) {
+            setNote("Upload received — compressing animation on server…");
+            resolve(body.celebration || body);
+          } else {
+            reject(new Error(body.error || `Upload failed (${xhr.status})`));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error while uploading GIF"));
+        xhr.ontimeout = () => reject(new Error("Upload timed out — try a smaller GIF or better network"));
+        xhr.send(file);
       });
-      const res: any = await emit("upload-celebration", { kind, dataUrl, filename: file.name });
-      const saved = res?.celebration;
+
+      setProgress(100);
       const outKb = Math.round((saved?.bytes || file.size) / 1024);
       const inKb = Math.round((saved?.originalBytes || file.size) / 1024);
       setNote(
@@ -1604,6 +1642,7 @@ export function SettingsPanel({ staff, admin, emit }: any) {
       setErr(e.message || "Upload failed");
     } finally {
       setBusy("");
+      setProgress(0);
     }
   };
 
@@ -1679,7 +1718,17 @@ export function SettingsPanel({ staff, admin, emit }: any) {
             ) : null}
           </label>
         </div>
-        {busy ? <p className="text-sm">Uploading {busy} GIF…</p> : null}
+        {busy ? (
+          <div className="space-y-1">
+            <p className="text-sm">Uploading {busy} GIF{progress ? `… ${progress}%` : "…"}</p>
+            <div className="h-2 overflow-hidden rounded-full bg-canvas">
+              <div className="h-full rounded-full bg-turf transition-all" style={{ width: `${Math.max(progress, 5)}%` }} />
+            </div>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              After upload finishes, the server may spend a few seconds compressing the animation.
+            </p>
+          </div>
+        ) : null}
         {note ? <p className="text-sm text-turf">{note}</p> : null}
         {err ? <p className="text-sm" style={{ color: "var(--crimson)" }}>{err}</p> : null}
       </Card>

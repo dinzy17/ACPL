@@ -10,10 +10,12 @@ import {
   publicUrlPort,
   repointAdvertiseUrls,
   saveStore,
-  saveUpload
+  saveUpload,
+  saveCelebrationGifBuffer,
+  hashPw
 } from "./server/store.mjs";
 import { attachSockets } from "./server/sockets.mjs";
-import { adminState } from "./server/engine.mjs";
+import { adminState, publicState } from "./server/engine.mjs";
 import {
   getFormByToken,
   publicFormPayload,
@@ -111,15 +113,82 @@ function readJson(req) {
   });
 }
 
+function readBody(req, maxBytes = 50 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > maxBytes) {
+        reject(new Error("File too large (max 45 MB)"));
+        try {
+          req.destroy();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
   res.writeHead(status, {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Arcus-Username, X-Arcus-Password"
   });
   res.end(data);
+}
+
+async function handleCelebrationUpload(req, res) {
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  if (req.method === "OPTIONS" && url.pathname.startsWith("/api/admin/celebrations")) {
+    sendJson(res, 204, {});
+    return true;
+  }
+  const m = url.pathname.match(/^\/api\/admin\/celebrations\/(sold|unsold)$/);
+  if (!m || req.method !== "POST") return false;
+
+  const username = String(req.headers["x-arcus-username"] || "").trim().toLowerCase();
+  const password = String(req.headers["x-arcus-password"] || "");
+  if (!username || !password) {
+    sendJson(res, 401, { ok: false, error: "Sign in again, then retry the upload" });
+    return true;
+  }
+  const user = (store.users || []).find((u) => u.username.toLowerCase() === username);
+  if (!user || user.passwordHash !== hashPw(password) || !["super", "admin"].includes(user.role)) {
+    sendJson(res, 403, { ok: false, error: "Only Super Admin / Admin can upload celebration GIFs" });
+    return true;
+  }
+
+  try {
+    const buf = await readBody(req, 45 * 1024 * 1024);
+    const saved = saveCelebrationGifBuffer(buf, m[1]);
+    store.meta = store.meta || {};
+    store.meta.celebrations = {
+      ...(store.meta.celebrations || {}),
+      [saved.kind]: { url: saved.url, bytes: saved.bytes, ext: saved.ext, updatedAt: Date.now() }
+    };
+    saveStore(store);
+    if (io) {
+      io.to("admin").emit("admin-state", adminState(store));
+      for (const a of store.auctions) {
+        if (a.status === "live" || a.status === "paused") {
+          io.emit("state", publicState(store, a.id));
+        }
+      }
+    }
+    sendJson(res, 200, { ok: true, celebration: saved, admin: adminState(store) });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e.message || "Upload failed" });
+  }
+  return true;
 }
 
 async function handleRegistrationApi(req, res) {
@@ -245,6 +314,7 @@ async function handleRegistrationApi(req, res) {
 async function requestHandler(req, res) {
   try {
     if (servePublicUpload(req, res)) return;
+    if (await handleCelebrationUpload(req, res)) return;
     if (await handleRegistrationApi(req, res)) return;
   } catch (e) {
     sendJson(res, 500, { ok: false, error: e.message || "Server error" });

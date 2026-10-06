@@ -204,26 +204,19 @@ function optimizeCelebrationGif(buf) {
   }
 }
 
-/** Save sold/unsold celebration GIF; large files are compressed with ffmpeg. */
-export function saveCelebrationGif(dataUrl, kind) {
+/** Save sold/unsold celebration GIF buffer; large files are compressed with ffmpeg. */
+export function saveCelebrationGifBuffer(buf, kind) {
   const which = String(kind || "").toLowerCase() === "unsold" ? "unsold" : "sold";
-  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) throw new Error("Invalid GIF data");
-  const mime = String(match[1] || "").toLowerCase();
-  const buf = Buffer.from(match[2], "base64");
+  if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf || []);
   if (buf.length > 45 * 1024 * 1024) {
-    throw new Error("GIF is too large even after allowing big uploads (max 45 MB). Compress it first.");
+    throw new Error("GIF is too large (max 45 MB). Compress it first.");
   }
-  const isGif = buf.length >= 6 && buf.subarray(0, 3).toString("ascii") === "GIF";
+  if (buf.length < 16) throw new Error("Empty or invalid file");
+  const isGif = buf.subarray(0, 3).toString("ascii") === "GIF";
   const isWebp =
-    buf.length >= 12 &&
-    buf.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buf.subarray(8, 12).toString("ascii") === "WEBP";
+    buf.subarray(0, 4).toString("ascii") === "RIFF" && buf.subarray(8, 12).toString("ascii") === "WEBP";
   if (!isGif && !isWebp) {
     throw new Error("Upload the original animated .gif (or .webp) file — chat stills / JPG are not accepted");
-  }
-  if (mime && !mime.includes("gif") && !mime.includes("webp") && !mime.includes("octet-stream")) {
-    if (!isGif && !isWebp) throw new Error("File must be an animated GIF or WebP");
   }
   const originalBytes = buf.length;
   const optimized = optimizeCelebrationGif(buf);
@@ -240,6 +233,14 @@ export function saveCelebrationGif(dataUrl, kind) {
     ext: "gif",
     compressed: optimized.length < originalBytes
   };
+}
+
+/** Save from a data URL (socket fallback). Prefer HTTP binary upload for large GIFs. */
+export function saveCelebrationGif(dataUrl, kind) {
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Invalid GIF data");
+  const buf = Buffer.from(match[2], "base64");
+  return saveCelebrationGifBuffer(buf, kind);
 }
 
 const DEFAULT_INCREMENTS = [

@@ -186,30 +186,39 @@ function sampleCornerColor(ffmpeg, inputPath) {
 }
 
 /**
- * Compress animated GIF/WebP for overlay use while keeping motion,
- * and bake out green-screen transparency for native <img> playback.
+ * Compress animated GIF/WebP for overlay use while keeping motion.
+ * Keys out green screen, then composites onto a solid overlay-matching
+ * background (avoids GIF transparency holes that distort the tiger face).
  */
-function optimizeCelebrationGif(buf) {
+function optimizeCelebrationGif(buf, kind = "sold") {
   const ffmpeg = resolveFfmpeg();
   if (!ffmpeg) return buf;
+  const which = String(kind || "").toLowerCase() === "unsold" ? "unsold" : "sold";
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "celeb-"));
   const input = path.join(dir, "in.bin");
   const output = path.join(dir, "out.gif");
   try {
     fs.writeFileSync(input, buf);
     const key = sampleCornerColor(ffmpeg, input);
-    const keyFilter = key
-      ? `chromakey=0x${key.hex}:${key.sim}:0.04,format=rgba,`
-      : "";
-    // Cap width/fps, key out green, then write a transparent palette GIF
+    // Soft blend preserves muzzle/face; bake into modal-matching background
+    const sim = key ? (which === "unsold" ? "0.075" : key.sim) : null;
+    const blend = which === "unsold" ? "0.15" : "0.12";
+    const keyHex = key?.hex || (which === "unsold" ? "3B8445" : "11B533");
+    const bg = which === "unsold" ? "0x0f172a" : "0xdbeafe";
+    const keyFilter = sim
+      ? `chromakey=0x${keyHex}:${sim}:${blend},format=rgba`
+      : "format=rgba";
     execFileSync(
       ffmpeg,
       [
         "-y",
         "-i",
         input,
-        "-vf",
-        `fps=12,scale='min(480,iw)':-1:flags=lanczos,${keyFilter}split[s0][s1];[s0]palettegen=reserve_transparent=1:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:alpha_threshold=128`,
+        "-filter_complex",
+        `[0:v]fps=12,scale=480:-1:flags=lanczos,${keyFilter},setpts=PTS-STARTPTS[fg];` +
+          `color=c=${bg}:s=480x270:r=12[bg];` +
+          `[bg][fg]overlay=(W-w)/2:(H-h)/2:shortest=1:format=auto,split[s0][s1];` +
+          `[s0]palettegen=stats_mode=diff:max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=2`,
         "-loop",
         "0",
         output
@@ -218,7 +227,6 @@ function optimizeCelebrationGif(buf) {
     );
     const out = fs.readFileSync(output);
     if (out.length > 1000) {
-      // Prefer the smaller file; for large uploads always keep the optimized encode
       if (out.length <= buf.length || buf.length > 2 * 1024 * 1024) return out;
     }
     return buf;
@@ -248,7 +256,7 @@ export function saveCelebrationGifBuffer(buf, kind) {
     throw new Error("Upload the original animated .gif (or .webp) file — chat stills / JPG are not accepted");
   }
   const originalBytes = buf.length;
-  const optimized = optimizeCelebrationGif(buf);
+  const optimized = optimizeCelebrationGif(buf, which);
   fs.mkdirSync(CELEBRATIONS_DIR, { recursive: true });
   const filename = `tiger-${which}.gif`;
   const dest = path.join(CELEBRATIONS_DIR, filename);

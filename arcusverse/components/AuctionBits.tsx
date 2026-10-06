@@ -75,7 +75,7 @@ export function SoldOverlay({
           <img src={team.logo} alt="" className="mt-3 h-16 w-16 rounded-full object-cover ring-4 ring-gold" />
         ) : null}
         <p className="mt-3 text-xs" style={{ color: "#64748b" }}>
-          Closes in a few seconds · click outside to return
+          Animation plays fully · click outside to return
         </p>
       </div>
     </div>
@@ -111,7 +111,7 @@ export function UnsoldOverlay({
           UNSOLD
         </div>
         <p className="mt-3 text-sm text-slate-300">No buyers — back to the pavilion</p>
-        <p className="mt-2 text-xs text-slate-500">Closes in a few seconds · click outside to return</p>
+        <p className="mt-2 text-xs text-slate-500">Animation plays fully · click outside to return</p>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
 import { BidTicker, Confetti, PlayerHero, PurseMeter, SoldOverlay, UnsoldOverlay } from "@/components/AuctionBits";
@@ -8,6 +8,9 @@ import { useApp } from "@/components/Providers";
 import { inr, beep, crToLakhs, lakhsToCr } from "@/lib/format";
 
 type Mode = "auctioneer" | "owner" | "spectator";
+
+/** Full celebration GIF length (~10s at 12fps) so the popup does not cut off early */
+const CELEBRATION_MS = 10500;
 
 function rosterSize(stats: any) {
   if (stats?.rosterCount != null) return Number(stats.rosterCount);
@@ -253,24 +256,41 @@ export function LiveBoard({
     else if (!denoms.includes(denom)) setDenom(denoms[0]);
   }, [live?.currentPlayer?.id, playerBase]);
 
+  // Match full celebration GIF length (~10s at 12fps) so the popup does not cut off early
+  const celebrationClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armCelebrationClear = (kind: "sold" | "unsold") => {
+    if (celebrationClearRef.current) clearTimeout(celebrationClearRef.current);
+    celebrationClearRef.current = setTimeout(() => {
+      celebrationClearRef.current = null;
+      if (kind === "unsold") setUnsoldStamp(null);
+      else setSoldStamp(null);
+    }, CELEBRATION_MS);
+  };
+
+  useEffect(() => {
+    const soldUrl = state?.meta?.celebrations?.sold?.url || "/celebrations/tiger-sold.gif";
+    const unsoldUrl = state?.meta?.celebrations?.unsold?.url || "/celebrations/tiger-unsold.gif";
+    // Preload so sold/unsold overlays appear immediately with animation ready
+    const a = new Image();
+    a.src = soldUrl;
+    const b = new Image();
+    b.src = unsoldUrl;
+  }, [state?.meta?.celebrations?.sold?.url, state?.meta?.celebrations?.unsold?.url]);
+
   useEffect(() => {
     const at = celebration?.at;
-    if (!at) {
-      setSoldStamp(null);
-      setUnsoldStamp(null);
-      return;
-    }
+    // Keep optimistic overlay up until its own timer finishes (do not clear on null at)
+    if (!at) return;
     const kind = celebration?.type === "unsold" ? "unsold" : "sold";
     if (kind === "unsold") {
       setSoldStamp(null);
       setUnsoldStamp(at);
-      const t = setTimeout(() => setUnsoldStamp(null), 4000);
-      return () => clearTimeout(t);
+      armCelebrationClear("unsold");
+      return;
     }
     setUnsoldStamp(null);
     setSoldStamp(at);
-    const t = setTimeout(() => setSoldStamp(null), 4000);
-    return () => clearTimeout(t);
+    armCelebrationClear("sold");
   }, [celebration?.at, celebration?.type]);
 
   useEffect(() => {
@@ -383,14 +403,28 @@ export function LiveBoard({
         const price = soldLakhs();
         refuseOverCap(team, price, "Sold price");
         payload = { teamId: payload.teamId || soldTeamId, price };
+        // Show immediately — do not wait for the socket round-trip
+        setUnsoldStamp(null);
+        setSoldStamp(Date.now());
+        armCelebrationClear("sold");
       }
       if (event === "unsold") {
+        setSoldStamp(null);
         setUnsoldStamp(Date.now());
-        setTimeout(() => setUnsoldStamp(null), 4000);
+        armCelebrationClear("unsold");
       }
       const res: any = await emit(event, { auctionId: aid, ...payload });
       if (res?.public) onPublic?.(res.public);
     } catch (e: any) {
+      // Roll back optimistic overlay if the server rejected the action
+      if (event === "sold" || event === "unsold") {
+        if (celebrationClearRef.current) {
+          clearTimeout(celebrationClearRef.current);
+          celebrationClearRef.current = null;
+        }
+        if (event === "sold") setSoldStamp(null);
+        if (event === "unsold") setUnsoldStamp(null);
+      }
       setErr(e.message);
       beep("warn");
     }

@@ -257,12 +257,21 @@ export function LiveBoard({
     const at = celebration?.at;
     if (!at) {
       setSoldStamp(null);
+      setUnsoldStamp(null);
       return;
     }
+    const kind = celebration?.type === "unsold" ? "unsold" : "sold";
+    if (kind === "unsold") {
+      setSoldStamp(null);
+      setUnsoldStamp(at);
+      const t = setTimeout(() => setUnsoldStamp(null), 4000);
+      return () => clearTimeout(t);
+    }
+    setUnsoldStamp(null);
     setSoldStamp(at);
     const t = setTimeout(() => setSoldStamp(null), 4000);
     return () => clearTimeout(t);
-  }, [celebration?.at]);
+  }, [celebration?.at, celebration?.type]);
 
   useEffect(() => {
     const preferred =

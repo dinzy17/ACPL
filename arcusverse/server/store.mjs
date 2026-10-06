@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID, createHash } from "crypto";
+import { execFileSync } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -143,34 +144,99 @@ export function saveUpload(dataUrl, filename = "file") {
   return `/uploads/${name}`;
 }
 
-/** Save sold/unsold celebration GIF bytes exactly (no re-encode). */
+function resolveFfmpeg() {
+  const candidates = [
+    process.env.FFMPEG_PATH,
+    "ffmpeg",
+    "/usr/local/bin/ffmpeg",
+    "/home/ec2-user/bin/ffmpeg",
+    "/usr/bin/ffmpeg"
+  ].filter(Boolean);
+  for (const bin of candidates) {
+    try {
+      execFileSync(bin, ["-version"], { stdio: "ignore", timeout: 5000 });
+      return bin;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+/** Compress animated GIF/WebP for overlay use while keeping motion. */
+function optimizeCelebrationGif(buf) {
+  const ffmpeg = resolveFfmpeg();
+  if (!ffmpeg) return buf;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "celeb-"));
+  const input = path.join(dir, "in.bin");
+  const output = path.join(dir, "out.gif");
+  try {
+    fs.writeFileSync(input, buf);
+    // Cap width, fps, and palette so large phone GIFs shrink to overlay size
+    execFileSync(
+      ffmpeg,
+      [
+        "-y",
+        "-i",
+        input,
+        "-vf",
+        "fps=12,scale='min(480,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=192:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4",
+        "-loop",
+        "0",
+        output
+      ],
+      { stdio: ["ignore", "pipe", "pipe"], timeout: 180000 }
+    );
+    const out = fs.readFileSync(output);
+    if (out.length > 1000) return out;
+    return buf;
+  } catch {
+    return buf;
+  } finally {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** Save sold/unsold celebration GIF; large files are compressed with ffmpeg. */
 export function saveCelebrationGif(dataUrl, kind) {
   const which = String(kind || "").toLowerCase() === "unsold" ? "unsold" : "sold";
   const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error("Invalid GIF data");
   const mime = String(match[1] || "").toLowerCase();
   const buf = Buffer.from(match[2], "base64");
+  if (buf.length > 45 * 1024 * 1024) {
+    throw new Error("GIF is too large even after allowing big uploads (max 45 MB). Compress it first.");
+  }
   const isGif = buf.length >= 6 && buf.subarray(0, 3).toString("ascii") === "GIF";
-  const isWebp = buf.length >= 12 && buf.subarray(0, 4).toString("ascii") === "RIFF" && buf.subarray(8, 12).toString("ascii") === "WEBP";
+  const isWebp =
+    buf.length >= 12 &&
+    buf.subarray(0, 4).toString("ascii") === "RIFF" &&
+    buf.subarray(8, 12).toString("ascii") === "WEBP";
   if (!isGif && !isWebp) {
     throw new Error("Upload the original animated .gif (or .webp) file — chat stills / JPG are not accepted");
   }
   if (mime && !mime.includes("gif") && !mime.includes("webp") && !mime.includes("octet-stream")) {
-    // allow octet-stream from some phones if magic bytes check passed
     if (!isGif && !isWebp) throw new Error("File must be an animated GIF or WebP");
   }
+  const originalBytes = buf.length;
+  const optimized = optimizeCelebrationGif(buf);
   fs.mkdirSync(CELEBRATIONS_DIR, { recursive: true });
-  const ext = isWebp ? "webp" : "gif";
-  // Prefer .gif path for UI; if webp, still write webp and keep gif name only for gif
-  const filename = `tiger-${which}.${ext}`;
+  const filename = `tiger-${which}.gif`;
   const dest = path.join(CELEBRATIONS_DIR, filename);
-  fs.writeFileSync(dest, buf);
-  // Also write companion .gif name when gif so overlays keep stable URLs
-  if (isGif) {
-    fs.writeFileSync(path.join(CELEBRATIONS_DIR, `tiger-${which}.gif`), buf);
-  }
+  fs.writeFileSync(dest, optimized);
   const url = `/celebrations/${filename}?v=${Date.now()}`;
-  return { url, kind: which, bytes: buf.length, ext };
+  return {
+    url,
+    kind: which,
+    bytes: optimized.length,
+    originalBytes,
+    ext: "gif",
+    compressed: optimized.length < originalBytes
+  };
 }
 
 const DEFAULT_INCREMENTS = [

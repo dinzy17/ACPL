@@ -30,6 +30,7 @@ import { startDailyRegistrationReportScheduler } from "./server/email.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_UPLOAD_DIR = path.join(__dirname, "public", "uploads");
+const PUBLIC_CELEBRATIONS_DIR = path.join(__dirname, "public", "celebrations");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
@@ -56,19 +57,25 @@ const UPLOAD_MIME = {
   svg: "image/svg+xml"
 };
 
-/** Serve public/uploads from disk — Next.js production often 404s files written after startup. */
+/** Serve public/uploads (and celebrations) from disk — Next.js production often 404s files written after startup. */
 function servePublicUpload(req, res) {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   if (req.method !== "GET" && req.method !== "HEAD") return false;
-  const m = url.pathname.match(/^\/uploads\/([a-zA-Z0-9._-]+)$/);
-  if (!m) return false;
+  let baseDir = null;
+  let m = url.pathname.match(/^\/uploads\/([a-zA-Z0-9._-]+)$/);
+  if (m) baseDir = PUBLIC_UPLOAD_DIR;
+  else {
+    m = url.pathname.match(/^\/celebrations\/([a-zA-Z0-9._-]+)$/);
+    if (m) baseDir = PUBLIC_CELEBRATIONS_DIR;
+  }
+  if (!m || !baseDir) return false;
   const name = m[1];
   if (name.includes("..") || name.includes("/") || name.includes("\\")) {
     res.writeHead(400).end("Bad request");
     return true;
   }
-  const abs = path.join(PUBLIC_UPLOAD_DIR, name);
-  if (!abs.startsWith(PUBLIC_UPLOAD_DIR) || !fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+  const abs = path.join(baseDir, name);
+  if (!abs.startsWith(baseDir) || !fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
     res.writeHead(404).end("Not found");
     return true;
   }
@@ -78,7 +85,7 @@ function servePublicUpload(req, res) {
   res.writeHead(200, {
     "Content-Type": type,
     "Content-Length": buf.length,
-    "Cache-Control": "public, max-age=31536000, immutable"
+    "Cache-Control": baseDir === PUBLIC_CELEBRATIONS_DIR ? "public, max-age=60" : "public, max-age=31536000, immutable"
   });
   if (req.method === "HEAD") res.end();
   else res.end(buf);
@@ -250,8 +257,8 @@ const httpServer = createServer(requestHandler);
 
 io = new Server(httpServer, {
   cors: { origin: true, credentials: true },
-  // Allow tournament logo / photo uploads as base64 data URLs (default 1MB is too small)
-  maxHttpBufferSize: 15 * 1024 * 1024
+  // Celebration GIFs can be large as base64 data URLs (then compressed server-side)
+  maxHttpBufferSize: 64 * 1024 * 1024
 });
 
 const urls = advertiseUrls(port);

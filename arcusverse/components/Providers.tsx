@@ -73,7 +73,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     new Promise<T>((resolve, reject) => {
       if (!socket) return reject(new Error("Not connected"));
       const timeoutMs =
-        opts?.timeoutMs ?? (event === "upload" || event === "upload-celebration" ? 120000 : 15000);
+        opts?.timeoutMs ?? (event === "upload" || event === "upload-celebration" ? 180000 : 15000);
       const timer = setTimeout(
         () =>
           reject(

@@ -1581,7 +1581,10 @@ export function SettingsPanel({ staff, admin, emit }: any) {
       if (!name.endsWith(".gif") && !name.endsWith(".webp") && !file.type.includes("gif") && !file.type.includes("webp")) {
         throw new Error("Choose the original animated .gif file (not a photo/screenshot)");
       }
-      if (file.size > 12 * 1024 * 1024) throw new Error("GIF is too large (max 12 MB)");
+      if (file.size > 40 * 1024 * 1024) {
+        throw new Error("GIF is too large (max 40 MB). Please compress it and try again.");
+      }
+      setNote(`Uploading ${kind} GIF${file.size > 2 * 1024 * 1024 ? " (large file — compressing on server)…" : "…"}`);
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ""));
@@ -1590,8 +1593,12 @@ export function SettingsPanel({ staff, admin, emit }: any) {
       });
       const res: any = await emit("upload-celebration", { kind, dataUrl, filename: file.name });
       const saved = res?.celebration;
+      const outKb = Math.round((saved?.bytes || file.size) / 1024);
+      const inKb = Math.round((saved?.originalBytes || file.size) / 1024);
       setNote(
-        `${kind === "sold" ? "Sold" : "Unsold"} GIF saved (${Math.round((saved?.bytes || file.size) / 1024)} KB). Hard-refresh live boards.`
+        saved?.compressed
+          ? `${kind === "sold" ? "Sold" : "Unsold"} GIF saved — compressed ${inKb} KB → ${outKb} KB. Hard-refresh live boards.`
+          : `${kind === "sold" ? "Sold" : "Unsold"} GIF saved (${outKb} KB). Hard-refresh live boards.`
       );
     } catch (e: any) {
       setErr(e.message || "Upload failed");
@@ -1636,8 +1643,9 @@ export function SettingsPanel({ staff, admin, emit }: any) {
       <Card className="space-y-3">
         <h2 className="font-display text-3xl">Sold / Unsold GIFs</h2>
         <p style={{ color: "var(--muted)" }}>
-          Upload the original animated .gif files from your phone Files app. Chat attachments get flattened to still photos —
-          this upload keeps the real animation frames.
+          Upload the original animated .gif files from your phone Files app (up to 40 MB). Large GIFs are automatically
+          compressed on the server while keeping the animation. Chat attachments get flattened to still photos — use this
+          upload instead.
         </p>
         <div className="space-y-3">
           <label className="block space-y-1">

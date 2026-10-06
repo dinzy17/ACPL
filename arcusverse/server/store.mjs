@@ -163,11 +163,6 @@ function resolveFfmpeg() {
   return null;
 }
 
-/** Sample top-left green-screen pixel from the first frame — unused after in-place bake. */
-function sampleCornerColor() {
-  return null;
-}
-
 /**
  * Prefer Python in-place green→bg bake (no chromakey alpha holes on the face).
  * Falls back to opaque ffmpeg compress without keying if Python bake is unavailable.

@@ -188,7 +188,10 @@ function optimizeCelebrationGif(buf) {
       { stdio: ["ignore", "pipe", "pipe"], timeout: 180000 }
     );
     const out = fs.readFileSync(output);
-    if (out.length > 1000) return out;
+    if (out.length > 1000) {
+      // Prefer the smaller file; for large uploads always keep the optimized encode
+      if (out.length <= buf.length || buf.length > 2 * 1024 * 1024) return out;
+    }
     return buf;
   } catch {
     return buf;

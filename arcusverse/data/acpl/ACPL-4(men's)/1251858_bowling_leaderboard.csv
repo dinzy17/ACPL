@@ -1,0 +1,59 @@
+player_id,name,team_id,team_name,total_match,innings,total_wickets,balls,highest_wicket,economy,SR,maidens,avg,runs,bowling_style,overs,dot_balls
+6521732,Gaurav Pillai,3067980,STRIKERS,8,8,10,94,2,4.47,9.40,0,7,70,Right-arm fast,15.4,51
+4746732,Aradhya Deshmukh,3067980,STRIKERS,8,8,10,83,3,5.78,8.30,0,8,80,Right-arm Off Break,13.5,41
+33119043,Rubal,3067980,STRIKERS,8,8,9,96,2,4.88,10.67,0,8.67,78,Right-arm fast,16.0,54
+8745736,Vishal Ratan Singh,3067975,Royal Warriors,7,7,8,78,2,5.92,9.75,0,9.63,77,Right-arm medium,13.0,43
+3683944,Prashant Puri,3067979,PHOENIX,6,6,8,72,3,7.00,9.00,0,10.5,84,Right-arm fast,12.0,38
+3552794,Prasad Kale Kp45,3067979,PHOENIX,6,6,7,70,2,4.89,10.00,0,8.14,57,Right-arm medium,11.4,39
+20121723,Jemin Mistry,3980744,Vikings,5,5,6,48,2,8.25,8.00,0,11,66,Right-arm Leg Break,8.0,30
+850817,Hrishikesh Joshi,3067975,Royal Warriors,7,7,5,65,2,5.26,13.00,1,11.4,57,Right-arm medium,10.5,39
+20047642,Amit Moon,3067975,Royal Warriors,7,7,5,84,2,5.29,16.80,0,14.8,74,Right-arm fast,14.0,42
+4249093,Ravi,3980744,Vikings,5,5,5,60,3,6.40,12.00,0,12.8,64,Right-arm fast,10.0,30
+10393119,Amit Deshmukh,3067973,MAVERICKS,7,6,5,62,3,6.87,12.40,0,14.2,71,Right-arm medium,10.2,32
+10654571,Arun Raghuwanshi,3980746,Royal Challengers,5,5,5,42,2,7.57,8.40,0,10.6,53,Right-arm medium,7.0,25
+3881514,Raghav,3067973,MAVERICKS,7,6,5,54,4,8.78,10.80,0,15.8,79,Right-arm fast,9.0,18
+24790051,Akshay Ratnaparkhi,3067979,PHOENIX,6,6,4,42,2,4.71,10.50,0,8.25,33,Right-arm medium,7.0,28
+16132079,Gaurav Mishra,3980744,Vikings,5,5,4,60,2,6.10,15.00,0,15.25,61,Right-arm medium,10.0,28
+24593860,Mukesh Singh Arcus,3067979,PHOENIX,6,6,4,66,1,7.91,16.50,0,21.75,87,Right-arm fast,11.0,29
+33119034,Laxmikant Mane,3067980,STRIKERS,8,7,4,40,2,7.95,10.00,0,13.25,53,Right-arm fast,6.4,21
+2290558,Rohit V Abbigeri,3980746,Royal Challengers,5,4,4,36,1,8.17,9.00,0,12.25,49,Right-arm Off Break,6.0,15
+24593743,Mayank Shrivastav B201 Rahul Arcus,3067979,PHOENIX,6,5,4,22,2,8.18,5.50,0,7.5,30,Right-arm medium,3.4,11
+2124876,Pushkar Sinha,3067973,MAVERICKS,7,6,3,66,1,5.09,22.00,0,18.67,56,Right-arm fast,11.0,35
+20339476,Dayanand Patil,3067980,STRIKERS,8,7,3,42,2,6.00,14.00,0,14,42,Right-arm medium,7.0,20
+10703577,Yogesh Pandit,3980746,Royal Challengers,5,4,3,19,2,6.32,6.33,0,6.67,20,Right-arm medium,3.1,11
+6406110,Ashish Pandit,3980744,Vikings,5,5,3,29,1,7.66,9.67,0,12.33,37,Right-arm medium,4.5,15
+20288476,Sarvesh Desai,3067973,MAVERICKS,7,5,3,30,1,12.00,10.00,0,20,60,Right-arm medium,5.0,12
+23235448,Raghav Sharma,3067975,Royal Warriors,7,4,2,30,1,5.40,15.00,0,13.5,27,Right-arm fast,5.0,16
+7814874,Sudarshan Kabra,3067973,MAVERICKS,7,6,2,66,1,6.73,33.00,1,37,74,Right-arm medium,11.0,25
+10654570,Nilesh Changade,3980746,Royal Challengers,5,4,2,42,1,8.14,21.00,0,28.5,57,Right-arm medium,7.0,25
+21968770,Sandesh Jain,3980744,Vikings,5,5,2,36,1,8.67,18.00,0,26,52,Right-arm medium,6.0,20
+16180968,Sagar Jadhav,3067975,Royal Warriors,7,5,2,33,2,9.45,16.50,0,26,52,Right-arm Leg Break,5.3,13
+19941285,Vinit Karande,3067973,MAVERICKS,7,3,1,18,1,7.00,18.00,0,21,21,Right-arm fast,3.0,7
+19940642,Dinesh Patil Rahul Arcus,3980746,Royal Challengers,5,5,1,54,1,7.11,54.00,0,64,64,Right-arm fast,9.0,29
+12299664,Sudarshan Patil,3067975,Royal Warriors,7,4,1,24,1,9.25,24.00,0,37,37,Right-arm medium,4.0,12
+26007816,Chirag Rokade,3067980,STRIKERS,8,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+24593862,Harshad Dewate Rahul Arcus,3067975,Royal Warriors,7,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+29245404,Krvivek,3067975,Royal Warriors,7,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+24593819,Khantil Dixit C1102 Rahul Arcus,3067975,Royal Warriors,7,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+30912036,Kunal Arora,3067973,MAVERICKS,7,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+31912310,Palash Soni,3067980,STRIKERS,3,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+33119039,Sharad Agrawal,3980746,Royal Challengers,5,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+35258853,Ashwini Singh,3067973,MAVERICKS,7,0,,,,0.00,0.00,0,0,0,-,0.0,0
+35586170,Ashutosh Industries,3067975,Royal Warriors,4,0,,,,0.00,0.00,0,0,0,-,0.0,0
+16199977,Shahaji Dhumal,3067979,PHOENIX,6,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+22507739,Avinash,3980744,Vikings,5,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+20596222,Sadashiv Swami,3067979,PHOENIX,6,0,,,,0.00,0.00,0,0,0,-,0.0,0
+20339413,Gaurav Nayyar,3980744,Vikings,5,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+19940638,Bibhu Prasad Panda,3067980,STRIKERS,8,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+17814423,Amit Karande,3067973,MAVERICKS,2,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+16593052,Nishant Zunzunwala,3067980,STRIKERS,8,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+16163644,Jayant Parkhi,3067980,STRIKERS,8,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+16132743,Bobby Venugopal,3980746,Royal Challengers,5,0,,,,0.00,0.00,0,0,0,-,0.0,0
+16132644,Swapnil Matte,3980744,Vikings,5,0,,,,0.00,0.00,0,0,0,None,0.0,0
+10394211,Vaibhav Patil,3067973,MAVERICKS,7,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+10392885,Suchit Awalgaonkar,3067979,PHOENIX,2,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+7525808,Prashant A,3067979,PHOENIX,6,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+2798485,Dhiraj Deshmukh,3980746,Royal Challengers,5,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+2638892,Siddhanth Parekh,3980744,Vikings,5,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+1519669,Ajit,3980746,Royal Challengers,5,0,,,,0.00,0.00,0,0,0,Right-arm Leg Break,0.0,0
+1365178,Omkar Sinha,3067979,PHOENIX,6,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0

@@ -54,11 +54,11 @@ export default function AuctioneerPage() {
         return;
       }
       const s = JSON.parse(saved);
-      const preferredId = s.auctionId || "";
+      // Do not auto-attach a remembered auctionId when multiple desks are live —
+      // server returns needsAuctionPick unless exactly one live/paused auction.
       emit("login", {
         username: s.username,
-        password: s.password,
-        auctionId: preferredId || undefined
+        password: s.password
       })
         .then((res: any) => {
           if (!["super", "admin", "auctioneer"].includes(res.role)) {

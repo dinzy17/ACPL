@@ -57,7 +57,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const saved = sessionStorage.getItem("arcus-auth");
         if (!saved) return;
         const a = JSON.parse(saved);
-        s.emit("login", { username: a.username, password: a.password, code: a.code });
+        // Credentials only — never re-attach a saved auction code on reconnect.
+        // Owner/auctioneer pages choose the desk explicitly after login.
+        if (!a?.username || !a?.password) return;
+        s.emit("login", { username: a.username, password: a.password });
       } catch {
         /* */
       }

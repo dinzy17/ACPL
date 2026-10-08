@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell, Card, Button, Field } from "@/components/ui";
 import { useApp } from "@/components/Providers";
@@ -13,7 +13,7 @@ function redirectFor(role: string) {
 }
 
 export default function HomePage() {
-  const { hello, emit, socket } = useApp();
+  const { hello, emit } = useApp();
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,25 +23,15 @@ export default function HomePage() {
     : ["http://localhost:3000/live"];
   const withCode = hello?.defaultAuction ? urls.map((u) => `${u}/${hello.defaultAuction}`) : urls;
 
-  useEffect(() => {
-    if (!socket) return;
-    try {
-      const saved = sessionStorage.getItem("arcus-auth");
-      if (!saved) return;
-      const s = JSON.parse(saved);
-      emit("login", { username: s.username, password: s.password }).then((res: any) => {
-        router.replace(res.redirect || redirectFor(res.role));
-      });
-    } catch {
-      /* */
-    }
-  }, [socket]);
-
   const login = async () => {
     try {
       setErr("");
       const res: any = await emit("login", { username, password });
-      sessionStorage.setItem("arcus-auth", JSON.stringify({ username, password, role: res.role }));
+      // Fresh login — never carry a previous auction selection into the next session
+      sessionStorage.setItem(
+        "arcus-auth",
+        JSON.stringify({ username, password, role: res.role, code: "", auctionId: "" })
+      );
       router.push(res.redirect || redirectFor(res.role));
     } catch (e: any) {
       setErr(e.message);

@@ -161,26 +161,35 @@ export default function OwnerPage() {
           const liveAuctions = (res.home?.auctions || []).filter(
             (a: any) => a.status === "live" || a.status === "paused"
           );
-          // Only auto-resume an auction the owner already chose (saved auctionId).
-          // If multiple are live, stay on home so they can pick.
-          const resumeId = auth.auctionId || "";
-          const resumeFromList = resumeId
-            ? liveAuctions.find((a: any) => a.id === resumeId) ||
-              (res.home?.auctions || []).find((a: any) => a.id === resumeId)
-            : null;
 
-          if (resumeFromList) {
-            try {
-              await openAuction(auth, {
-                auctionId: resumeFromList.id,
-                code: resumeFromList.code || auth.code || undefined
-              });
+          // Already on a desk (e.g. socket reconnect) — stay on that auction
+          if (viewingRef.current) {
+            const still = (res.home?.auctions || []).find((a: any) => a.id === viewingRef.current);
+            if (still) {
+              try {
+                await openAuction(auth, { auctionId: still.id, code: still.code });
+              } catch {
+                /* keep current view */
+              }
               return;
-            } catch {
-              /* fall through to home */
             }
-          } else if (liveAuctions.length === 1 && !auth.auctionId) {
-            // Single live auction — open it; with 2+ stay on chooser home
+            setState(null);
+            setViewing(null);
+          }
+
+          // Multiple live desks — always show chooser; never auto-resume a saved auctionId
+          if (liveAuctions.length > 1) {
+            sessionStorage.setItem(
+              "arcus-auth",
+              JSON.stringify({ ...auth, code: "", auctionId: "" })
+            );
+            setState(null);
+            setViewing(null);
+            return;
+          }
+
+          // Exactly one live auction — open it
+          if (liveAuctions.length === 1) {
             try {
               await openAuction(auth, {
                 auctionId: liveAuctions[0].id,
@@ -188,14 +197,13 @@ export default function OwnerPage() {
               });
               return;
             } catch {
-              /* fall through */
+              /* fall through to home */
             }
           }
-          // Stay on owner home when multiple live auctions (or none) — user picks
-          if (!viewingRef.current) {
-            setState(null);
-            setViewing(null);
-          }
+
+          // No live auction — stay on home
+          setState(null);
+          setViewing(null);
         })
         .catch(() => router.replace("/"));
     };

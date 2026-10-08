@@ -19,6 +19,20 @@ test("falls back to denom formula when no base caps", () => {
   assert.equal(maxBidFromBaseQuotas(10000, [], 1, 11, 1000), 1000);
 });
 
+test("last roster slot: full purse even with base quotas configured", () => {
+  // maxSquad=1, roster=0 → empty=1 → may spend entire purse (20 Cr = 2000 L)
+  const baseSlots = [{ basePrice: 1000, owned: 0, cap: 1 }];
+  assert.equal(maxBidFromBaseQuotas(2000, baseSlots, 0, 1, 1000), 2000);
+  // Same via denom path
+  assert.equal(maxBidFromBaseQuotas(2000, [], 0, 1, 1000), 2000);
+});
+
+test("nextMaxBid last slot is full purse", async () => {
+  const { nextMaxBid } = await import("../server/engine.mjs");
+  assert.equal(nextMaxBid(2000, 0, 1, 1000), 2000);
+  assert.equal(nextMaxBid(2000, 0, 2, 1000), 1000); // empty=2 → reserve 1*1000
+});
+
 test("teamLiveStats uses base-quota max bid when caps configured", () => {
   const teamId = "t1";
   const currentId = "cur";

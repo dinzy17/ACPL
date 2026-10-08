@@ -49,9 +49,17 @@ export function nextMaxBid(purseLeft, rosterCount, maxSquad, denom) {
  * Max bid with base-price squad quotas (user formula):
  * purseLeft - Σ(need[b] × b) for every capped base, where need = max(0, cap − owned).
  * Example: 100 − (2×10 + 4×2 + 4×5) = 52 when bidding on a 5 Cr player.
+ * Last empty roster slot: no reserve — full remaining purse is available (same as nextMaxBid).
  * Falls back to denom-based nextMaxBid when no base caps are configured.
  */
 export function maxBidFromBaseQuotas(purseLeft, baseSlots, rosterCount, maxSquad, fallbackDenom) {
+  const empty = Math.max(0, Number(maxSquad || 0) - Number(rosterCount || 0));
+  if (empty <= 0) return 0;
+  // Only one player left to buy — they may spend the entire remaining purse
+  if (empty === 1) {
+    return Math.max(0, Math.round(Number(purseLeft || 0) * 10) / 10);
+  }
+
   const slots = (baseSlots || []).filter((b) => b && b.cap != null && Number.isFinite(Number(b.cap)));
   if (!slots.length) {
     return nextMaxBid(purseLeft, rosterCount, maxSquad, fallbackDenom);
@@ -63,7 +71,6 @@ export function maxBidFromBaseQuotas(purseLeft, baseSlots, rosterCount, maxSquad
     reserve += need * Number(b.basePrice);
     cappedNeed += need;
   }
-  const empty = Math.max(0, Number(maxSquad || 0) - Number(rosterCount || 0));
   const uncovered = Math.max(0, empty - cappedNeed);
   if (uncovered > 0) {
     const bases = slots.map((s) => Number(s.basePrice)).filter((n) => Number.isFinite(n) && n > 0);

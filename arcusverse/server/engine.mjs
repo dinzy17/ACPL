@@ -297,6 +297,7 @@ export function publicState(store, auctionId) {
       return a.basePrice - b.basePrice;
     });
 
+  const tournament = store.tournaments.find((t) => t.id === auction.tournamentId);
   return {
     meta: {
       updatedAt: store.meta.updatedAt,
@@ -318,7 +319,9 @@ export function publicState(store, auctionId) {
       sequence: auction.sequence,
       categoryId: auction.categoryId,
       tournamentId: auction.tournamentId,
-      sport: store.tournaments.find((t) => t.id === auction.tournamentId)?.sport || "Cricket",
+      tournamentName: tournament?.name || "",
+      tournamentLogo: tournament?.logo || "",
+      sport: tournament?.sport || "Cricket",
       liveBidding: store.meta.liveBidding === true,
       // Additive optional field — absent on older auctions
       youtubeLiveUrl: auction.youtubeLiveUrl || ""

@@ -444,10 +444,16 @@ export default function OwnerPage() {
                 </div>
                 <Button
                   variant="bid"
-                  disabled={busy || a.status === "completed"}
-                  onClick={() => enterAuction({ auctionId: a.id, code: a.code })}
+                  disabled={busy}
+                  onClick={() => {
+                    if (a.status === "completed" && a.code) {
+                      router.push(`/owner/bought/${a.code}`);
+                      return;
+                    }
+                    enterAuction({ auctionId: a.id, code: a.code });
+                  }}
                 >
-                  {a.status === "completed" ? "Ended" : busy ? "Opening…" : "Enter auction"}
+                  {a.status === "completed" ? "View squad" : busy ? "Opening…" : "Enter auction"}
                 </Button>
               </div>
             ))}

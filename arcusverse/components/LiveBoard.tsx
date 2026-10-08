@@ -217,6 +217,8 @@ export function LiveBoard({
   const [maxBidPopup, setMaxBidPopup] = useState(false);
   const [endPrompt, setEndPrompt] = useState(false);
   const [endPromptSeen, setEndPromptSeen] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
+  const thanksShownRef = useRef(false);
   const configuredDenoms: number[] = auction.denominators?.length ? auction.denominators.map(Number) : [auction.purse];
   const playerBase = Number(live?.currentPlayer?.basePrice) || 0;
   const denoms = useMemo(() => {
@@ -317,6 +319,36 @@ export function LiveBoard({
       setEndPrompt(false);
     }
   }, [live?.offerEnd, mode, endPromptSeen]);
+
+  useEffect(() => {
+    if (mode !== "owner") return;
+    if (auction?.status !== "completed") {
+      thanksShownRef.current = false;
+      setThanksOpen(false);
+      return;
+    }
+    if (thanksShownRef.current) return;
+    const key = auction?.id ? `arcus-thanks-seen:${auction.id}` : "";
+    try {
+      if (key && sessionStorage.getItem(key) === "1") return;
+    } catch {
+      /* ignore */
+    }
+    thanksShownRef.current = true;
+    setThanksOpen(true);
+  }, [mode, auction?.status, auction?.id]);
+
+  const closeThanks = () => {
+    setThanksOpen(false);
+    const key = auction?.id ? `arcus-thanks-seen:${auction.id}` : "";
+    try {
+      if (key) sessionStorage.setItem(key, "1");
+    } catch {
+      /* ignore */
+    }
+    const code = auction?.code;
+    if (code) router.push(`/owner/bought/${code}`);
+  };
 
   useEffect(() => {
     if (mode !== "owner" || !teamId) return;
@@ -520,6 +552,39 @@ export function LiveBoard({
             </p>
             <Button variant="turf" onClick={() => setMaxBidPopup(false)}>
               OK
+            </Button>
+          </Card>
+        </div>
+      )}
+      {mode === "owner" && thanksOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4">
+          <Card className="relative z-[81] w-full max-w-lg space-y-5 p-8 text-center">
+            {auction?.tournamentLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={auction.tournamentLogo}
+                alt={auction.tournamentName || "Tournament"}
+                className="mx-auto h-28 w-28 rounded-2xl object-cover"
+              />
+            ) : (
+              <div
+                className="mx-auto flex h-28 w-28 items-center justify-center rounded-2xl font-display text-4xl"
+                style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)" }}
+              >
+                {(auction?.tournamentName || auction?.name || "A").slice(0, 1)}
+              </div>
+            )}
+            {auction?.tournamentName ? (
+              <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                {auction.tournamentName}
+              </p>
+            ) : null}
+            <h2 className="font-display text-4xl leading-tight">Thank you for Participating in Auction</h2>
+            <p className="text-base" style={{ color: "var(--muted)" }}>
+              Best of luck for the tournament
+            </p>
+            <Button variant="turf" className="w-full" onClick={closeThanks}>
+              View my squad
             </Button>
           </Card>
         </div>

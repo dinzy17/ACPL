@@ -123,6 +123,12 @@ export function download(filename: string, content: string, type = "text/csv") {
   URL.revokeObjectURL(url);
 }
 
+function csvEscape(v: unknown) {
+  const s = v == null ? "" : String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 export function rosterCsv(state: any) {
   const rows = [["Team", "Player", "Role", "Category", "Base (L)", "Sold (L)", "Retained"]];
   const extra = state?.teams?.flatMap((t: any) =>
@@ -148,7 +154,42 @@ export function rosterCsv(state: any) {
       s.retained ? "Yes" : "No"
     ]);
   }
-  return rows.map((r) => r.join(",")).join("\n");
+  return rows.map((r) => r.map(csvEscape).join(",")).join("\n");
+}
+
+/** CSV of players bought (and retained) by one team in an auction public state. */
+export function teamBoughtCsv(state: any, teamId: string) {
+  const rows = [["Player", "Role", "Category", "Base (Cr)", "Sold (Cr)", "Source"]];
+  const team = state?.teams?.find((t: any) => t.id === teamId);
+  const sold = (state?.live?.sold || [])
+    .filter((s: any) => s.teamId === teamId)
+    .map((s: any) => {
+      const p = state.players.find((x: any) => x.id === s.playerId);
+      return {
+        name: p?.name || "Player",
+        role: p?.role || "",
+        category: p?.categoryName || "",
+        baseCr: lakhsToCr(s.basePrice),
+        soldCr: lakhsToCr(s.soldPrice),
+        source: "Bought"
+      };
+    });
+  const retained = (team?.retentions || []).map((r: any) => {
+    const p = state.players.find((x: any) => x.id === r.playerId);
+    return {
+      name: p?.name || "Player",
+      role: p?.role || "",
+      category: p?.categoryName || "",
+      baseCr: lakhsToCr(r.basePrice),
+      soldCr: lakhsToCr(r.soldPrice),
+      source: "Retained"
+    };
+  });
+  const all = [...retained, ...sold].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  for (const row of all) {
+    rows.push([row.name, row.role, row.category, row.baseCr, row.soldCr, row.source]);
+  }
+  return rows.map((r) => r.map(csvEscape).join(",")).join("\n");
 }
 
 export function fileToDataUrl(file: File) {

@@ -38,18 +38,27 @@ export default function SummaryPage() {
       player: state.players.find((p: any) => p.id === s.playerId),
       team: state.teams.find((t: any) => t.id === s.teamId)
     }));
-    const highest = [...withPlayers].sort((a, b) => b.soldPrice - a.soldPrice)[0];
-    const byBase: Record<string, any> = {};
+    const topPrice = withPlayers.reduce((m: number, row: any) => Math.max(m, Number(row.soldPrice) || 0), 0);
+    const highestPlayers = topPrice
+      ? withPlayers.filter((row: any) => Number(row.soldPrice) === topPrice)
+      : [];
+    const byBase: Record<string, any[]> = {};
     for (const row of withPlayers) {
       const key = String(row.basePrice);
-      if (!byBase[key] || row.soldPrice > byBase[key].soldPrice) byBase[key] = row;
+      const list = byBase[key] || [];
+      if (!list.length || Number(row.soldPrice) > Number(list[0].soldPrice)) {
+        byBase[key] = [row];
+      } else if (Number(row.soldPrice) === Number(list[0].soldPrice)) {
+        list.push(row);
+        byBase[key] = list;
+      }
     }
     const started = state.live?.startedAt;
     const ended = state.live?.endedAt || (state.auction.status === "live" ? Date.now() : started);
     const duration = started && ended ? ended - started : 0;
     const lotTimes: number[] = (state.live?.lotTimes || []).map((x: any) => x.ms);
     const avg = lotTimes.length ? lotTimes.reduce((a: number, b: number) => a + b, 0) / lotTimes.length : duration / Math.max(1, sold.length);
-    return { sold, withPlayers, highest, byBase, duration, avg, count: sold.length };
+    return { sold, withPlayers, highestPlayers, topPrice, byBase, duration, avg, count: sold.length };
   }, [state]);
 
   if (!state || !stats) {
@@ -75,12 +84,34 @@ export default function SummaryPage() {
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="lg:col-span-1">
           <p className="text-xs uppercase tracking-widest text-[var(--muted)]">Highest bid</p>
-          <p className="font-display text-4xl">{stats.highest ? stats.highest.player?.name : "—"}</p>
-          <p className="text-sm">
-            {stats.highest?.team?.name} · {inr(stats.highest?.soldPrice)}
-          </p>
+          <p className="mt-1 font-display text-3xl">{stats.topPrice ? inr(stats.topPrice) : "—"}</p>
+          <div className="mt-3 space-y-2">
+            {stats.highestPlayers.map((row: any) => (
+              <div key={row.playerId} className="flex items-center gap-2">
+                {row.player?.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={row.player.photo} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                ) : (
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold"
+                    style={{
+                      background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+                      color: "var(--accent)"
+                    }}
+                  >
+                    {(row.player?.name || "?").slice(0, 1)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-semibold leading-tight">{row.player?.name || "—"}</p>
+                  <p className="truncate text-xs text-[var(--muted)]">{row.team?.name}</p>
+                </div>
+              </div>
+            ))}
+            {!stats.highestPlayers.length && <p className="text-sm text-[var(--muted)]">No sales yet</p>}
+          </div>
         </Card>
         <Card>
           <p className="text-xs uppercase tracking-widest text-[var(--muted)]">Players bought</p>
@@ -98,13 +129,37 @@ export default function SummaryPage() {
 
       <Card className="mb-6">
         <h2 className="font-display text-3xl">Highest bid by base price</h2>
-        <ul className="mt-3 space-y-2">
-          {Object.values(stats.byBase).map((row: any) => (
-            <li key={row.playerId} className="flex justify-between text-sm">
-              <span>
-                Base {inr(row.basePrice)} · {row.player?.name} ({row.team?.name})
-              </span>
-              <strong>{inr(row.soldPrice)}</strong>
+        <ul className="mt-3 space-y-3">
+          {Object.entries(stats.byBase).map(([base, rows]) => (
+            <li key={base} className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold">Base {inr(Number(base))}</span>
+                <strong>{inr(rows[0]?.soldPrice)}</strong>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {rows.map((row: any) => (
+                  <div key={row.playerId} className="flex items-center gap-2 text-sm">
+                    {row.player?.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={row.player.photo} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                    ) : (
+                      <div
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold"
+                        style={{
+                          background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+                          color: "var(--accent)"
+                        }}
+                      >
+                        {(row.player?.name || "?").slice(0, 1)}
+                      </div>
+                    )}
+                    <span>
+                      {row.player?.name}{" "}
+                      <span className="text-[var(--muted)]">({row.team?.name})</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </li>
           ))}
         </ul>

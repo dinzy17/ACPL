@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Shell, Card, Button } from "@/components/ui";
 import { useApp } from "@/components/Providers";
+import { TeamwiseExportBar } from "@/components/TeamwiseExportBar";
 import { download, inr, rosterCsv } from "@/lib/format";
 
 function fmtDur(ms: number) {
@@ -76,11 +77,14 @@ export default function SummaryPage() {
 
   return (
     <Shell title="Summary" subtitle={state.auction.name} showLogout>
-      <div className="mb-4 flex gap-2 print:hidden">
-        <Button variant="turf" onClick={() => download(`${state.auction.code}-rosters.csv`, rosterCsv(state))}>
-          Export CSV
-        </Button>
-        <Button onClick={() => window.print()}>Print / Save PDF</Button>
+      <div className="mb-4 space-y-4 print:hidden">
+        <TeamwiseExportBar state={state} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="turf" onClick={() => download(`${state.auction.code}-rosters.csv`, rosterCsv(state))}>
+            Export CSV
+          </Button>
+          <Button onClick={() => window.print()}>Print page</Button>
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">

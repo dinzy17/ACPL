@@ -119,7 +119,7 @@ export default function AdminOverview() {
                     {sold.length} sold · highest {player?.name || "—"} {top ? inr(top.soldPrice) : ""}
                   </p>
                   <Link className="mt-3 mr-3 inline-block text-sm font-bold" style={{ color: "var(--accent)" }} href={`/summary/${a.code}`}>
-                    Open summary →
+                    Summary & teamwise downloads (Excel / PDF / JPEG / PNG) →
                   </Link>
                   <Link className="mt-3 inline-block text-sm font-bold" style={{ color: "var(--turf)" }} href={`/admin/schedule/${a.id}`}>
                     Groups & schedule →

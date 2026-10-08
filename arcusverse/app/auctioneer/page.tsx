@@ -7,6 +7,7 @@ import { Shell, Card, Button } from "@/components/ui";
 import { useApp } from "@/components/Providers";
 import { LiveBoard } from "@/components/LiveBoard";
 import { LiveSpectatorBadge } from "@/components/LiveSpectatorBadge";
+import { TeamwiseExportBar } from "@/components/TeamwiseExportBar";
 import { beep } from "@/lib/format";
 
 function statusLabel(status: string) {
@@ -242,12 +243,22 @@ export default function AuctioneerPage() {
         <LiveSpectatorBadge auctionId={auctionId || state.auction.id} />
         <Button onClick={() => setShowUrls(true)}>Spectator URL</Button>
         <Button onClick={switchAuction}>Switch auction</Button>
+        {state.auction?.status === "completed" && state.auction?.code ? (
+          <Link className="btn btn-turf px-5 py-2.5 text-sm" href={`/summary/${state.auction.code}`}>
+            Open summary & downloads
+          </Link>
+        ) : null}
         {role !== "auctioneer" && (
           <Link className="btn btn-ghost px-5 py-2.5 text-sm" href="/admin">
             Admin
           </Link>
         )}
       </div>
+      {state.auction?.status === "completed" ? (
+        <div className="mb-4">
+          <TeamwiseExportBar state={state} title="Auction ended — download teamwise lists" />
+        </div>
+      ) : null}
       {showUrls && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowUrls(false)}>
           <Card className="relative z-[61] max-w-lg space-y-3 p-6" onClick={(e) => e.stopPropagation()}>

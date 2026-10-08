@@ -1491,6 +1491,11 @@ export function AuctionsPanel({ admin, emit }: any) {
                 Schedule
               </Link>
             )}
+            {(a.status === "completed" || a.status === "live" || a.status === "paused") && a.code ? (
+              <Link className="btn btn-turf px-5 py-2.5 text-sm" href={`/summary/${a.code}`}>
+                Summary / downloads
+              </Link>
+            ) : null}
             <Button variant="danger" onClick={() => emit("delete-auction", { id: a.id })}>
               Delete
             </Button>

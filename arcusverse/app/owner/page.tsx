@@ -158,21 +158,40 @@ export default function OwnerPage() {
           setTeamName(res.teamName);
           setHome(res.home || null);
 
-          const liveAuction =
-            (res.home?.auctions || []).find((a: any) => a.status === "live" || a.status === "paused") || null;
-          const resumeId = auth.auctionId || viewingRef.current || liveAuction?.id || "";
-          const resumeCode = auth.code || liveAuction?.code || "";
+          const liveAuctions = (res.home?.auctions || []).filter(
+            (a: any) => a.status === "live" || a.status === "paused"
+          );
+          // Only auto-resume an auction the owner already chose (saved auctionId).
+          // If multiple are live, stay on home so they can pick.
+          const resumeId = auth.auctionId || "";
+          const resumeFromList = resumeId
+            ? liveAuctions.find((a: any) => a.id === resumeId) ||
+              (res.home?.auctions || []).find((a: any) => a.id === resumeId)
+            : null;
 
-          // Re-open hammer desk / live board after login or socket reconnect
-          if (resumeId || resumeCode) {
+          if (resumeFromList) {
             try {
-              await openAuction(auth, { auctionId: resumeId || undefined, code: resumeCode || undefined });
+              await openAuction(auth, {
+                auctionId: resumeFromList.id,
+                code: resumeFromList.code || auth.code || undefined
+              });
               return;
             } catch {
               /* fall through to home */
             }
+          } else if (liveAuctions.length === 1 && !auth.auctionId) {
+            // Single live auction — open it; with 2+ stay on chooser home
+            try {
+              await openAuction(auth, {
+                auctionId: liveAuctions[0].id,
+                code: liveAuctions[0].code
+              });
+              return;
+            } catch {
+              /* fall through */
+            }
           }
-          // Stay on owner home when no live auction to resume
+          // Stay on owner home when multiple live auctions (or none) — user picks
           if (!viewingRef.current) {
             setState(null);
             setViewing(null);
@@ -391,12 +410,22 @@ export default function OwnerPage() {
 
           <Card className="space-y-3">
             <h2 className="font-display text-3xl">Auctions</h2>
+            {auctions.filter((a: any) => a.status === "live" || a.status === "paused").length > 1 && (
+              <p className="text-sm font-semibold" style={{ color: "var(--aqua)" }}>
+                Multiple auctions are live — choose which desk to enter.
+              </p>
+            )}
             {!auctions.length && (
               <p className="text-sm" style={{ color: "var(--muted)" }}>
                 No auctions list your team yet. Use a code below when the auctioneer shares one.
               </p>
             )}
-            {auctions.map((a: any) => (
+            {[...auctions]
+              .sort((a: any, b: any) => {
+                const rank = (s: string) => (s === "live" ? 0 : s === "paused" ? 1 : s === "draft" ? 2 : 3);
+                return rank(a.status) - rank(b.status) || String(a.name).localeCompare(String(b.name));
+              })
+              .map((a: any) => (
               <div key={a.id} className="neu-sm flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div>
                   <p className="font-display text-2xl">{a.name}</p>

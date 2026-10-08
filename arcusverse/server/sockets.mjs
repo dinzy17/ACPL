@@ -74,6 +74,28 @@ function findAuction(store, auctionId) {
   return store.auctions.find((a) => a.id === key || a.code === key.toUpperCase()) || null;
 }
 
+/** Compact auction list for hammer-desk picker (no live payload). */
+function deskAuctionSummaries(store) {
+  const rank = { live: 0, paused: 1, draft: 2, completed: 3 };
+  return (store.auctions || [])
+    .map((a) => ({
+      id: a.id,
+      code: a.code,
+      name: a.name,
+      status: a.status || "draft",
+      tournamentId: a.tournamentId || null,
+      tournamentName: store.tournaments.find((t) => t.id === a.tournamentId)?.name || ""
+    }))
+    .sort(
+      (a, b) =>
+        (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || String(a.name || "").localeCompare(String(b.name || ""))
+    );
+}
+
+function liveishAuctions(store) {
+  return (store.auctions || []).filter((a) => a.status === "live" || a.status === "paused");
+}
+
 function ok(store, auctionId) {
   const auction = findAuction(store, auctionId);
   return { admin: adminState(store), public: auction ? publicState(store, auction.id) : null };
@@ -245,13 +267,22 @@ export function attachSockets(io, store, urls) {
 
         if (STAFF.includes(user.role)) {
           socket.join("admin");
-          const auction =
-            store.auctions.find((a) => a.id === payload.auctionId || a.code === String(payload.auctionId || "").toUpperCase()) ||
-            store.auctions.find((a) => a.status === "live" || a.status === "paused") ||
-            store.auctions[0];
+          const deskAuctions = deskAuctionSummaries(store);
+          const requested = payload?.auctionId || payload?.code || "";
+          let auction = null;
+          if (requested) {
+            auction = findAuction(store, requested);
+            if (!auction) throw new Error("Auction not found");
+          } else {
+            // Only auto-enter when exactly one live/paused auction — otherwise staff must choose
+            const liveish = liveishAuctions(store);
+            if (liveish.length === 1) auction = liveish[0];
+          }
           if (auction) {
             socket.join("auction:" + auction.id);
             socket.data.auctionId = auction.id;
+          } else {
+            socket.data.auctionId = null;
           }
           cb?.({
             ok: true,
@@ -261,6 +292,8 @@ export function attachSockets(io, store, urls) {
             admin: adminState(store),
             public: auction ? publicState(store, auction.id) : null,
             viewers: auction ? countAuctionViewers(io, auction.id) : null,
+            deskAuctions,
+            needsAuctionPick: !auction,
             redirect: user.role === "auctioneer" ? "/auctioneer" : "/admin"
           });
           if (auction) emitViewerStats(auction.id);
@@ -438,6 +471,37 @@ export function attachSockets(io, store, urls) {
         }
       }
     );
+
+    /** Attach staff to a chosen auction desk without mutating auction config. */
+    socket.on("select-desk-auction", (payload, cb) => {
+      try {
+        requireRole(socket, STAFF);
+        const p = payload || {};
+        const auction = findAuction(store, p.auctionId || p.code);
+        if (!auction) throw new Error("Auction not found");
+        const prev = socket.data.auctionId;
+        if (prev && prev !== auction.id) {
+          try {
+            socket.leave("auction:" + prev);
+          } catch {
+            /* ignore */
+          }
+        }
+        socket.join("auction:" + auction.id);
+        socket.data.auctionId = auction.id;
+        emitViewerStats(auction.id);
+        if (prev && prev !== auction.id) emitViewerStats(prev);
+        cb?.({
+          ok: true,
+          auctionId: auction.id,
+          public: publicState(store, auction.id),
+          deskAuctions: deskAuctionSummaries(store),
+          viewers: countAuctionViewers(io, auction.id)
+        });
+      } catch (e) {
+        cb?.({ ok: false, error: e.message });
+      }
+    });
 
     /** Only patches auction.youtubeLiveUrl — never touches purse, teams, live state, etc. */
     socket.on(

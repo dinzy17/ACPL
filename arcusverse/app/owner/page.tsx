@@ -158,11 +158,7 @@ export default function OwnerPage() {
           setTeamName(res.teamName);
           setHome(res.home || null);
 
-          const liveAuctions = (res.home?.auctions || []).filter(
-            (a: any) => a.status === "live" || a.status === "paused"
-          );
-
-          // Already on a desk (e.g. socket reconnect) — stay on that auction
+          // Already on a desk (e.g. socket reconnect) — stay on that auction only
           if (viewingRef.current) {
             const still = (res.home?.auctions || []).find((a: any) => a.id === viewingRef.current);
             if (still) {
@@ -177,31 +173,12 @@ export default function OwnerPage() {
             setViewing(null);
           }
 
-          // Multiple live desks — always show chooser; never auto-resume a saved auctionId
-          if (liveAuctions.length > 1) {
-            sessionStorage.setItem(
-              "arcus-auth",
-              JSON.stringify({ ...auth, code: "", auctionId: "" })
-            );
-            setState(null);
-            setViewing(null);
-            return;
-          }
-
-          // Exactly one live auction — open it
-          if (liveAuctions.length === 1) {
-            try {
-              await openAuction(auth, {
-                auctionId: liveAuctions[0].id,
-                code: liveAuctions[0].code
-              });
-              return;
-            } catch {
-              /* fall through to home */
-            }
-          }
-
-          // No live auction — stay on home
+          // Always land on owner home / chooser — never auto-enter a live or saved auction.
+          // Owners pick explicitly via Enter auction, View squad, or auction code.
+          sessionStorage.setItem(
+            "arcus-auth",
+            JSON.stringify({ ...auth, code: "", auctionId: "" })
+          );
           setState(null);
           setViewing(null);
         })

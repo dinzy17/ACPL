@@ -6,7 +6,16 @@ import { Button, Card, ColorSelect, Field, FilePick, Select } from "@/components
 import { AcplStatsCard } from "@/components/AcplStats";
 import { AcplLinkPicker } from "@/components/admin/AcplLinkPicker";
 import { useApp } from "@/components/Providers";
-import { parseTableFile, inr, lakhsToCr, crToLakhs, defaultIncrementRows, incrementsToRows, rowsToIncrements } from "@/lib/format";
+import {
+  parseTableFile,
+  inr,
+  lakhsToCr,
+  crToLakhs,
+  defaultIncrementRows,
+  incrementRowsFromDenoms,
+  incrementsToRows,
+  rowsToIncrements
+} from "@/lib/format";
 
 export const SPORTS = ["Cricket", "Badminton", "Table-tennis"];
 export const ROLES = ["Batsman", "Bowler", "All-Rounder", "Wicketkeeper"];
@@ -1117,6 +1126,18 @@ export function AuctionsPanel({ admin, emit }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep bid-increment From/To (Cr) aligned with max-bid denominators as they are typed
+  useEffect(() => {
+    const parts = denoms
+      .split(/[,\s]+/)
+      .map((d) => d.trim())
+      .filter(Boolean)
+      .map((d) => Number(d))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (!parts.length) return;
+    setIncRows((prev) => incrementRowsFromDenoms(parts, prev));
+  }, [denoms]);
+
   const tourSport = String(admin.tournaments.find((t: any) => t.id === tournamentId)?.sport || "Cricket").toLowerCase();
   const catTeams = admin.teams.filter(
     (t: any) => t.categoryId === categoryId && String(t.sport || "Cricket").toLowerCase() === tourSport
@@ -1166,7 +1187,7 @@ export function AuctionsPanel({ admin, emit }: any) {
     setMinSquad("5");
     setMaxSquad("8");
     setSequence("random");
-    setIncRows(defaultIncrementRows());
+    setIncRows(incrementRowsFromDenoms([6, 8, 10]));
     setMaxByBase({});
     setYoutubeLiveUrl("");
     setErr("");
@@ -1355,7 +1376,8 @@ export function AuctionsPanel({ admin, emit }: any) {
             Bid increments — range in crores, step in lakhs
           </p>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
-            Example: 6 Cr–8 Cr → ₹20 L, 8 Cr–10 Cr → ₹25 L, above 10 Cr → ₹50 L. Leave “To” blank for “and above”.
+            From/To ranges follow max-bid denominators automatically (e.g. denoms 2,5,10 → 0–2, 2–5, 5–10, 10+).
+            Edit the increment (lakhs) per band; leave “To” blank for “and above”.
           </p>
           {incRows.map((row, i) => (
             <div key={i} className="grid gap-2 md:grid-cols-4">

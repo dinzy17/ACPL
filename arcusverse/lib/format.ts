@@ -44,6 +44,47 @@ export function defaultIncrementRows() {
   ];
 }
 
+/**
+ * Build increment From/To (Cr) rows from max-bid denominators (Cr).
+ * Preserves prior step (lakhs) values by row index when possible.
+ * Example denoms 2,5,10 → 0–2, 2–5, 5–10, 10+
+ */
+export function incrementRowsFromDenoms(
+  denomsCr: (string | number)[],
+  prevRows?: { fromCr: string; toCr: string; stepL: string }[]
+) {
+  const sorted = [
+    ...new Set(
+      denomsCr
+        .map((d) => Number(d))
+        .filter((n) => Number.isFinite(n) && n > 0)
+    )
+  ].sort((a, b) => a - b);
+  if (!sorted.length) return prevRows?.length ? prevRows : defaultIncrementRows();
+
+  const defaultSteps = ["20", "20", "25", "50"];
+  const prevSteps = (prevRows || []).map((r) => r.stepL).filter((s) => s !== "" && s != null);
+  const stepAt = (i: number) =>
+    prevSteps[i] || prevSteps[prevSteps.length - 1] || defaultSteps[Math.min(i, defaultSteps.length - 1)];
+
+  const rows: { fromCr: string; toCr: string; stepL: string }[] = [
+    { fromCr: "0", toCr: String(sorted[0]), stepL: stepAt(0) }
+  ];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    rows.push({
+      fromCr: String(sorted[i]),
+      toCr: String(sorted[i + 1]),
+      stepL: stepAt(i + 1)
+    });
+  }
+  rows.push({
+    fromCr: String(sorted[sorted.length - 1]),
+    toCr: "",
+    stepL: stepAt(sorted.length)
+  });
+  return rows;
+}
+
 export function incrementsToRows(incs: { from: number; to: number; step: number }[] | undefined) {
   if (!incs?.length) return defaultIncrementRows();
   return incs.map((i) => ({

@@ -59,46 +59,57 @@ function RemainingByBase({ rows }: { rows: any[] }) {
   );
 }
 
+function teamBlockReason(stats: any, minNext: number, holding: boolean, maxSquad: number) {
+  if (!stats) return "Cannot bid further";
+  if (holding) return "";
+  if (stats.atBaseLimit) return "Cannot bid as category limit exhausted";
+  if (rosterSize(stats) >= Number(maxSquad || 0) && Number(maxSquad || 0) > 0) {
+    return "Cannot bid further — squad full";
+  }
+  if (stats.cannotBidFurther || minNext > Number(stats.maxBid || 0) + 1e-9 || minNext > Number(stats.purseLeft || 0) + 1e-9) {
+    return "Cannot bid further";
+  }
+  return "";
+}
+
 function TeamIntel({
   team,
   auction,
   denom,
   minNext,
   holdingTeamId,
-  expanded,
-  onToggle
+  highlight = false
 }: {
   team: any;
   auction: any;
   denom: number;
   minNext: number;
   holdingTeamId?: string | null;
-  expanded: boolean;
-  onToggle: () => void;
+  highlight?: boolean;
 }) {
   const s = team.stats || {};
   const maxBid = teamMaxBid(s, denom, auction);
   const rosterCount = rosterSize(s);
   const roster = s.roster || [];
   const holding = holdingTeamId === team.id;
-  const blocked = teamBlocked(s, minNext, holding, Number(auction.maxSquad || 0));
+  const blockReason = teamBlockReason(s, minNext, holding, Number(auction.maxSquad || 0));
   const bases = (s.baseSlots || []).filter((b: any) => b.cap != null);
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
+    <div
       className="relative h-fit min-w-[220px] overflow-hidden rounded-2xl p-4 text-left"
       style={{
         background: "var(--neu-bg)",
         boxShadow: "8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light)",
-        borderTop: `4px solid ${team.color || "var(--turf)"}`
+        borderTop: `4px solid ${team.color || "var(--turf)"}`,
+        outline: highlight ? `2px solid ${team.color || "var(--accent)"}` : undefined
       }}
     >
-      {blocked ? <div className="team-blocked-overlay">Cannot bid further</div> : null}
+      {blockReason ? <div className="team-blocked-overlay">{blockReason}</div> : null}
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-display text-2xl leading-tight" style={{ color: team.color }}>
           {team.name}
+          {highlight ? <span className="ml-2 text-xs font-sans font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>You</span> : null}
         </h4>
         {team.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -120,45 +131,43 @@ function TeamIntel({
         </div>
       </div>
       <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-        Squad {rosterCount}/{auction.maxSquad} · tap for details
+        Squad {rosterCount}/{auction.maxSquad}
       </p>
-      {expanded ? (
-        <div className="mt-3 space-y-2 border-t border-black/5 pt-2" onClick={(e) => e.stopPropagation()}>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-turf">Base slots</p>
-          <ul className="space-y-0.5 text-xs">
-            {bases.map((b: any) => (
-              <li key={b.basePrice} className="flex justify-between gap-2">
-                <span>{inr(b.basePrice)}</span>
-                <span style={{ color: "var(--muted)" }}>
-                  {b.owned}/{b.cap} · {b.left} left
+      <div className="mt-3 space-y-2 border-t border-black/5 pt-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-turf">Base slots</p>
+        <ul className="space-y-0.5 text-xs">
+          {bases.map((b: any) => (
+            <li key={b.basePrice} className="flex justify-between gap-2">
+              <span>{inr(b.basePrice)}</span>
+              <span style={{ color: "var(--muted)" }}>
+                {b.owned}/{b.cap} · {b.left} left
+              </span>
+            </li>
+          ))}
+          {!bases.length && <li style={{ color: "var(--muted)" }}>No base caps configured</li>}
+        </ul>
+        <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-turf">Players bought</p>
+        <ul className="max-h-40 space-y-0.5 overflow-auto text-sm">
+          {roster.map((r: any) => (
+            <li key={r.playerId} className="flex justify-between gap-2 py-0.5">
+              <span>
+                {r.playerName || "Player"}
+                {r.retained ? " (R)" : ""}
+                <span className="ml-1 text-[10px]" style={{ color: "var(--muted)" }}>
+                  {inr(r.basePrice)}
                 </span>
-              </li>
-            ))}
-            {!bases.length && <li style={{ color: "var(--muted)" }}>No base caps configured</li>}
-          </ul>
-          <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-turf">Players bought</p>
-          <ul className="max-h-40 space-y-0.5 overflow-auto text-sm">
-            {roster.map((r: any) => (
-              <li key={r.playerId} className="flex justify-between gap-2 py-0.5">
-                <span>
-                  {r.playerName || "Player"}
-                  {r.retained ? " (R)" : ""}
-                  <span className="ml-1 text-[10px]" style={{ color: "var(--muted)" }}>
-                    {inr(r.basePrice)}
-                  </span>
-                </span>
-                <span style={{ color: "var(--muted)" }}>{inr(r.soldPrice)}</span>
-              </li>
-            ))}
-            {!roster.length && (
-              <li className="text-xs" style={{ color: "var(--muted)" }}>
-                No players yet
-              </li>
-            )}
-          </ul>
-        </div>
-      ) : null}
-    </button>
+              </span>
+              <span style={{ color: "var(--muted)" }}>{inr(r.soldPrice)}</span>
+            </li>
+          ))}
+          {!roster.length && (
+            <li className="text-xs" style={{ color: "var(--muted)" }}>
+              No players yet
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -210,7 +219,6 @@ export function LiveBoard({
   const [soldPrice, setSoldPrice] = useState("");
   const [bidTeamId, setBidTeamId] = useState("");
   const [bidPrice, setBidPrice] = useState("");
-  const [openTeams, setOpenTeams] = useState<Record<string, boolean>>({});
   const [outbid, setOutbid] = useState(false);
   const [soldStamp, setSoldStamp] = useState<number | null>(null);
   const [unsoldStamp, setUnsoldStamp] = useState<number | null>(null);
@@ -543,9 +551,13 @@ export function LiveBoard({
       {mode === "owner" && maxBidPopup && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
           <Card className="relative z-[71] max-w-md space-y-3 p-6 text-center">
-            <h2 className="font-display text-3xl">Maximum bid reached</h2>
+            <h2 className="font-display text-3xl">
+              {mine?.stats?.atBaseLimit ? "Category limit exhausted" : "Maximum bid reached"}
+            </h2>
             <p className="text-sm" style={{ color: "var(--muted)" }}>
-              You&apos;ve reached maximum bid count. Cannot bid further on this player.
+              {mine?.stats?.atBaseLimit
+                ? "Cannot bid as category limit exhausted for this player’s base."
+                : `You cannot bid more than ${inr(mineMaxBid)} for this player.`}
             </p>
             <p className="text-sm">
               Your max for this lot: <strong>{inr(mineMaxBid)}</strong>
@@ -593,9 +605,6 @@ export function LiveBoard({
       {mode === "auctioneer" && (
         <div className="flex flex-wrap items-center gap-2">
           <LiveSpectatorBadge auctionId={aid} />
-          <Button variant="lime" onClick={() => act("start-auction")}>
-            {auction.status === "live" || auction.status === "paused" ? "Reset live auction" : "Start auction"}
-          </Button>
           <Button variant="turf" onClick={() => act("next-player")} disabled={poolEmpty}>
             Next player
           </Button>
@@ -752,6 +761,11 @@ export function LiveBoard({
           )}
           {mode === "owner" && liveBidding && (
             <div className={`card h-fit p-4 ${outbid ? "outbid-shake" : ""}`}>
+              {live?.phase === "bidding" && live?.currentPlayer && mine ? (
+                <div className="bid-tip-bubble mb-3">
+                  You cannot bid more than <strong>{inr(mineMaxBid)}</strong> for this player.
+                </div>
+              ) : null}
               {holding && <p className="text-sm">You have the current bid.</p>}
               {!canBid && live?.phase === "bidding" && !holding && (
                 <p className="text-sm" style={{ color: "var(--muted)" }}>
@@ -760,7 +774,7 @@ export function LiveBoard({
                     : paused
                       ? "Auction is paused."
                       : mine.stats?.atBaseLimit
-                        ? `Cannot bid — max players at ${inr(live?.currentPlayer?.basePrice)} base` +
+                        ? `Cannot bid — category limit exhausted at ${inr(live?.currentPlayer?.basePrice)} base` +
                           (mine.stats.baseCap != null
                             ? ` (${mine.stats.baseCount}/${mine.stats.baseCap}).`
                             : ".")
@@ -828,6 +842,17 @@ export function LiveBoard({
 
       {(mode === "owner" || mode === "auctioneer") && (
         <div className="grid w-full items-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+          {mode === "owner" && mine ? (
+            <TeamIntel
+              key={mine.id}
+              team={mine}
+              auction={auction}
+              denom={denom}
+              minNext={minNextBid}
+              holdingTeamId={lastBidTeamId}
+              highlight
+            />
+          ) : null}
           {(mode === "auctioneer" ? teams : rivals).map((t: any) => (
             <TeamIntel
               key={t.id}
@@ -836,8 +861,6 @@ export function LiveBoard({
               denom={denom}
               minNext={minNextBid}
               holdingTeamId={lastBidTeamId}
-              expanded={!!openTeams[t.id]}
-              onToggle={() => setOpenTeams((o) => ({ ...o, [t.id]: !o[t.id] }))}
             />
           ))}
         </div>
@@ -853,8 +876,6 @@ export function LiveBoard({
               denom={denom}
               minNext={minNextBid}
               holdingTeamId={lastBidTeamId}
-              expanded={!!openTeams[t.id]}
-              onToggle={() => setOpenTeams((o) => ({ ...o, [t.id]: !o[t.id] }))}
             />
           ))}
         </div>

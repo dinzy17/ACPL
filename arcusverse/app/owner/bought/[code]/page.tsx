@@ -74,6 +74,7 @@ export default function OwnerBoughtPage() {
           role: p?.role || "",
           categoryName: p?.categoryName || "",
           photo: p?.photo || "",
+          phone: p?.phone || "",
           basePrice: s.basePrice,
           soldPrice: s.soldPrice,
           source: "Bought" as const
@@ -87,6 +88,7 @@ export default function OwnerBoughtPage() {
         role: p?.role || "",
         categoryName: p?.categoryName || "",
         photo: p?.photo || "",
+        phone: p?.phone || "",
         basePrice: r.basePrice,
         soldPrice: r.soldPrice,
         source: "Retained" as const
@@ -170,6 +172,7 @@ export default function OwnerBoughtPage() {
               <th className="px-4 py-3">Base</th>
               <th className="px-4 py-3">Sold / fee</th>
               <th className="px-4 py-3">Source</th>
+              <th className="px-4 py-3">Phone</th>
             </tr>
           </thead>
           <tbody>
@@ -203,11 +206,12 @@ export default function OwnerBoughtPage() {
                 <td className="px-4 py-3">{inr(p.basePrice)}</td>
                 <td className="px-4 py-3">{p.soldPrice != null ? inr(p.soldPrice) : "—"}</td>
                 <td className="px-4 py-3">{p.source}</td>
+                <td className="px-4 py-3">{p.phone || "—"}</td>
               </tr>
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center" style={{ color: "var(--muted)" }}>
+                <td colSpan={6} className="px-4 py-10 text-center" style={{ color: "var(--muted)" }}>
                   No players bought in this auction yet.
                 </td>
               </tr>

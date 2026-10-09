@@ -9,7 +9,7 @@
     "start": "cross-env NODE_ENV=production node server.mjs",
     "lint": "next lint",
     "import:acpl": "node scripts/import-acpl.mjs",
-    "test": "node --test tests/acpl.test.mjs tests/registration.test.mjs tests/player-dedupe.test.mjs tests/public-port.test.mjs tests/auction-teams.test.mjs tests/auction-base-cap.test.mjs tests/youtube.test.mjs"
+    "test": "node --test tests/acpl.test.mjs tests/registration.test.mjs tests/player-dedupe.test.mjs tests/public-port.test.mjs tests/auction-teams.test.mjs tests/auction-base-cap.test.mjs tests/youtube.test.mjs tests/auction-unsold-reset.test.mjs tests/max-bid-quotas.test.mjs"
   },
   "dependencies": {
     "next": "^14.2.15",

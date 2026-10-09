@@ -29,6 +29,7 @@ export default function AuctioneerPage() {
   const [busy, setBusy] = useState(false);
   const [showUrls, setShowUrls] = useState(false);
   const [copied, setCopied] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -128,6 +129,20 @@ export default function AuctioneerPage() {
       });
     } catch {
       /* ignore */
+    }
+  };
+
+  const startOrResetLive = async () => {
+    try {
+      setBusy(true);
+      setErr("");
+      setConfirmReset(false);
+      const res: any = await emit("start-auction", { auctionId: auctionId || state?.auction?.id });
+      if (res?.public) setState(res.public);
+    } catch (e: any) {
+      setErr(e.message || "Could not start/reset auction");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -241,6 +256,18 @@ export default function AuctioneerPage() {
     <Shell title="Auctioneer dashboard" subtitle={state.auction.name} showLogout>
       <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
         <LiveSpectatorBadge auctionId={auctionId || state.auction.id} />
+        <Button
+          variant={state.auction?.status === "live" || state.auction?.status === "paused" ? "danger" : "lime"}
+          disabled={busy}
+          onClick={() => {
+            if (state.auction?.status === "live" || state.auction?.status === "paused") setConfirmReset(true);
+            else startOrResetLive();
+          }}
+        >
+          {state.auction?.status === "live" || state.auction?.status === "paused"
+            ? "Reset live auction"
+            : "Start auction"}
+        </Button>
         <Button onClick={() => setShowUrls(true)}>Spectator URL</Button>
         <Button onClick={switchAuction}>Switch auction</Button>
         {state.auction?.status === "completed" && state.auction?.code ? (
@@ -254,6 +281,28 @@ export default function AuctioneerPage() {
           </Link>
         )}
       </div>
+      {confirmReset && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+          <Card className="relative z-[71] max-w-md space-y-4 p-6">
+            <h2 className="font-display text-3xl">Reset live auction?</h2>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              This clears the current live board and starts over. If you click it by mistake, use{" "}
+              <strong>Undo</strong> immediately to restore the previous auction state.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="danger" disabled={busy} onClick={startOrResetLive}>
+                {busy ? "Resetting…" : "Yes, reset"}
+              </Button>
+              <Button onClick={() => setConfirmReset(false)}>Cancel</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+      {err ? (
+        <p className="mb-3 font-semibold" style={{ color: "var(--crimson)" }}>
+          {err}
+        </p>
+      ) : null}
       {state.auction?.status === "completed" ? (
         <div className="mb-4">
           <TeamwiseExportBar state={state} title="Auction ended — download teamwise lists" />

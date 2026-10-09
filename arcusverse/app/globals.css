@@ -310,6 +310,28 @@ body {
   pointer-events: none;
 }
 
+.bid-tip-bubble {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.7rem 0.95rem;
+  border-radius: 1.1rem 1.1rem 1.1rem 0.35rem;
+  background: color-mix(in srgb, var(--accent) 14%, var(--canvas));
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.35;
+  box-shadow: 4px 4px 10px var(--neu-dark), -3px -3px 8px var(--neu-light);
+}
+.bid-tip-bubble::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: -8px;
+  border-width: 8px 8px 0 0;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--canvas)) transparent transparent transparent;
+}
+
 .splash-mark {
   position: absolute;
   object-fit: contain;

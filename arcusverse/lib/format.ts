@@ -159,7 +159,7 @@ export function rosterCsv(state: any) {
 
 /** CSV of players bought (and retained) by one team in an auction public state. */
 export function teamBoughtCsv(state: any, teamId: string) {
-  const rows = [["Player", "Role", "Category", "Base (Cr)", "Sold (Cr)", "Source"]];
+  const rows = [["Player", "Role", "Category", "Base (Cr)", "Sold (Cr)", "Source", "Phone"]];
   const team = state?.teams?.find((t: any) => t.id === teamId);
   const sold = (state?.live?.sold || [])
     .filter((s: any) => s.teamId === teamId)
@@ -171,7 +171,8 @@ export function teamBoughtCsv(state: any, teamId: string) {
         category: p?.categoryName || "",
         baseCr: lakhsToCr(s.basePrice),
         soldCr: lakhsToCr(s.soldPrice),
-        source: "Bought"
+        source: "Bought",
+        phone: p?.phone || ""
       };
     });
   const retained = (team?.retentions || []).map((r: any) => {
@@ -182,12 +183,13 @@ export function teamBoughtCsv(state: any, teamId: string) {
       category: p?.categoryName || "",
       baseCr: lakhsToCr(r.basePrice),
       soldCr: lakhsToCr(r.soldPrice),
-      source: "Retained"
+      source: "Retained",
+      phone: p?.phone || ""
     };
   });
   const all = [...retained, ...sold].sort((a, b) => String(a.name).localeCompare(String(b.name)));
   for (const row of all) {
-    rows.push([row.name, row.role, row.category, row.baseCr, row.soldCr, row.source]);
+    rows.push([row.name, row.role, row.category, row.baseCr, row.soldCr, row.source, row.phone]);
   }
   return rows.map((r) => r.map(csvEscape).join(",")).join("\n");
 }

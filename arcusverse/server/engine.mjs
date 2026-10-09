@@ -269,8 +269,9 @@ export function publicState(store, auctionId) {
   const current = live ? store.players.find((p) => p.id === live.currentPlayerId) : null;
   const lastTeam = live?.lastBidTeamId ? store.teams.find((t) => t.id === live.lastBidTeamId) : null;
 
+  const soldIdSet = new Set((live?.sold || []).map((s) => s.playerId));
   const unsoldIds = Object.entries(live?.unsoldPasses || {})
-    .filter(([, n]) => n > 0)
+    .filter(([id, n]) => n > 0 && !soldIdSet.has(id) && id !== live?.currentPlayerId)
     .map(([id]) => id);
 
   const remainingPoolIds = live
@@ -581,10 +582,24 @@ export function buildQueue(store, auction) {
   return shuffle(players.map((p) => p.id));
 }
 
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export function startAuction(store, auctionId) {
   const auction = store.auctions.find((a) => a.id === auctionId || a.code === String(auctionId || "").toUpperCase());
   if (!auction) throw new Error("Auction not found");
   auction.teamIds = auctionTeamIds(store, auction);
+
+  // Snapshot prior live state so Undo can restore an accidental reset
+  const hadLive = Boolean(auction.live);
+  const previousStatus = auction.status || "draft";
+  const previousLive = hadLive ? cloneJson(auction.live) : null;
+  const previousTeamLinks = (auction.live?.sold || []).map((row) => {
+    const p = store.players.find((x) => x.id === row.playerId);
+    return { playerId: row.playerId, teamId: p?.teamId || row.teamId || null };
+  });
+
   for (const row of auction.live?.sold || []) {
     const p = store.players.find((x) => x.id === row.playerId);
     if (p && !playerLockedToTeam(store, p)) p.teamId = null;
@@ -602,7 +617,17 @@ export function startAuction(store, auctionId) {
     sold: [],
     unsoldPasses: {},
     finalUnsold: [],
-    history: [],
+    history: hadLive
+      ? [
+          {
+            type: "reset",
+            previousStatus,
+            previousLive,
+            previousTeamLinks,
+            at: Date.now()
+          }
+        ]
+      : [],
     celebration: null,
     offerEnd: false,
     startedAt: Date.now(),
@@ -734,6 +759,11 @@ export function markSold(store, auctionId, override = {}) {
   live.sold.push(row);
   player.teamId = teamId;
   live.remainingPlayerIds = live.remainingPlayerIds.filter((id) => id !== player.id);
+  // Clear unsold markers so a re-auctioned then sold player leaves the unsold list
+  if (live.unsoldPasses && live.unsoldPasses[player.id] != null) {
+    delete live.unsoldPasses[player.id];
+  }
+  live.finalUnsold = (live.finalUnsold || []).filter((id) => id !== player.id);
   closeLotClock(live, player.id);
   live.history.push({ type: "sold", ...row });
   live.celebration = { type: "sold", playerId: player.id, teamId, soldPrice, at: Date.now() };
@@ -846,6 +876,21 @@ export function undoLast(store, auctionId) {
   const live = auction.live;
   const last = live.history[live.history.length - 1];
   if (!last) throw new Error("Nothing to undo");
+  if (last.type === "reset" && last.previousLive) {
+    // Clear team links created after the accidental reset
+    for (const row of live.sold || []) {
+      const p = store.players.find((x) => x.id === row.playerId);
+      if (p && !playerLockedToTeam(store, p)) p.teamId = null;
+    }
+    auction.live = cloneJson(last.previousLive);
+    auction.status = last.previousStatus || "live";
+    for (const link of last.previousTeamLinks || []) {
+      const p = store.players.find((x) => x.id === link.playerId);
+      if (p) p.teamId = link.teamId || null;
+    }
+    bumpLive(auction.live);
+    return auction;
+  }
   if (last.type === "bid" && live.phase === "bidding") {
     live.history.pop();
     const bids = live.history.filter((h) => h.type === "bid" && h.playerId === live.currentPlayerId);
@@ -901,6 +946,11 @@ export function undoLast(store, auctionId) {
     live.timerEndsAt = null;
     live.lotStartedAt = null;
     bumpLive(live);
+    // Reset live auto-picks the first lot — one Undo should restore the pre-reset auction
+    const prev = live.history[live.history.length - 1];
+    if (prev?.type === "reset" && prev.previousLive) {
+      return undoLast(store, auctionId);
+    }
     return auction;
   }
   throw new Error("Cannot undo");

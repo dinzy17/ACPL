@@ -694,6 +694,24 @@ export function LiveBoard({
             currentBid={currentBid}
             lastTeam={lastTeam}
           />
+          {mode === "owner" && mine && live?.currentPlayer && (live?.phase === "bidding" || live?.phase === "idle") ? (
+            <div className="bid-tip-bubble">
+              You cannot bid more than <strong>{inr(mineMaxBid)}</strong> for this player.
+            </div>
+          ) : null}
+          {mode === "owner" && !liveBidding && live?.phase === "bidding" ? (
+            <div className={`card h-fit p-4 ${outbid ? "outbid-shake" : ""}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Current bid</p>
+                <BidTicker team={lastTeam} amount={currentBid} />
+              </div>
+              <p className="font-display mt-1 text-6xl leading-none text-turf">{inr(currentBid)}</p>
+              <p className="mt-1 text-lg">{lastTeam?.name || "Waiting for a raise"}</p>
+              <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
+                Watching — auctioneer is calling bids.
+              </p>
+            </div>
+          ) : null}
           {mode !== "owner" && (
             <div className={`card h-fit p-4 ${outbid ? "outbid-shake" : lastBidTeamId ? "lime-flash" : ""}`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -761,11 +779,6 @@ export function LiveBoard({
           )}
           {mode === "owner" && liveBidding && (
             <div className={`card h-fit p-4 ${outbid ? "outbid-shake" : ""}`}>
-              {live?.phase === "bidding" && live?.currentPlayer && mine ? (
-                <div className="bid-tip-bubble mb-3">
-                  You cannot bid more than <strong>{inr(mineMaxBid)}</strong> for this player.
-                </div>
-              ) : null}
               {holding && <p className="text-sm">You have the current bid.</p>}
               {!canBid && live?.phase === "bidding" && !holding && (
                 <p className="text-sm" style={{ color: "var(--muted)" }}>

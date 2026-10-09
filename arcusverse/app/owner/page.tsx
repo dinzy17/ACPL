@@ -40,18 +40,34 @@ export default function OwnerPage() {
     setViewingId(id);
   }, []);
 
+  const emitRef = useRef(emit);
+  const routerRef = useRef(router);
+  useEffect(() => {
+    emitRef.current = emit;
+    routerRef.current = router;
+  }, [emit, router]);
+
   const applyPublic = useCallback((s: any) => {
     if (!s?.auction) return;
     setState((prev: any) => {
-      const incoming = s.live?.rev || s.meta?.updatedAt || 0;
-      const have = prev?.live?.rev || prev?.meta?.updatedAt || 0;
-      if (prev && incoming && have && incoming < have) {
+      const incoming = Number(s.live?.rev || 0);
+      const have = Number(prev?.live?.rev || 0);
+      const playerChanged =
+        (s.live?.currentPlayerId || null) !== (prev?.live?.currentPlayerId || null) ||
+        (s.live?.phase || null) !== (prev?.live?.phase || null);
+      // Never drop a newer lot / player change — only skip clearly older revisions
+      if (prev && incoming && have && incoming < have && !playerChanged) {
         if ((prev.teams || []).length || !(s.teams || []).length) return prev;
         return { ...prev, teams: s.teams, players: s.players || prev.players };
       }
       return s;
     });
   }, []);
+
+  const applyPublicRef = useRef(applyPublic);
+  useEffect(() => {
+    applyPublicRef.current = applyPublic;
+  }, [applyPublic]);
 
   const goHome = useCallback(async () => {
     setState(null);
@@ -73,7 +89,7 @@ export default function OwnerPage() {
     if (!socket) return;
     const saved = readAuth();
     if (!saved?.username) {
-      router.replace("/");
+      routerRef.current.replace("/");
       return;
     }
 
@@ -83,16 +99,23 @@ export default function OwnerPage() {
       if (!vid || (lot.auctionId && lot.auctionId !== vid)) return;
       setState((prev: any) => {
         if (!prev) return prev;
-        if (lot.rev && prev?.live?.rev && lot.rev < prev.live.rev) return prev;
+        const incoming = Number(lot.rev || 0);
+        const have = Number(prev?.live?.rev || 0);
+        const playerChanged =
+          (lot.currentPlayer?.id || null) !== (prev?.live?.currentPlayerId || null) ||
+          (lot.phase || null) !== (prev?.live?.phase || null);
+        // Apply lot when newer, same-rev with player/phase change, or missing rev
+        if (incoming && have && incoming < have && !playerChanged) return prev;
         const live = {
           ...(prev?.live || {}),
-          rev: lot.rev,
+          rev: incoming || have || prev?.live?.rev,
           phase: lot.phase,
           currentBid: lot.currentBid,
           lastBidTeamId: lot.lastBidTeamId,
           timerEndsAt: lot.timerEndsAt,
           currentPlayer: lot.currentPlayer,
-          currentPlayerId: lot.currentPlayer?.id || null
+          currentPlayerId: lot.currentPlayer?.id || null,
+          celebration: lot.celebration !== undefined ? lot.celebration : prev?.live?.celebration
         };
         return {
           ...prev,
@@ -112,19 +135,19 @@ export default function OwnerPage() {
       const vid = viewingRef.current;
       if (!vid || s.auction.id !== vid) return;
       if (s.live?.currentBid) beep("bid");
-      applyPublic(s);
+      applyPublicRef.current(s);
     };
 
     const openAuction = async (auth: any, opts: { code?: string; auctionId?: string }) => {
       const joinCode = String(opts.code || "").trim().toUpperCase();
-      const res: any = await emit("login", {
+      const res: any = await emitRef.current("login", {
         username: auth.username,
         password: auth.password,
         code: joinCode || undefined,
         auctionId: opts.auctionId
       });
       if (res.role !== "owner") {
-        router.replace(res.redirect || "/");
+        routerRef.current.replace(res.redirect || "/");
         return null;
       }
       setTeamId(res.teamId);
@@ -132,33 +155,45 @@ export default function OwnerPage() {
       if (res.home) setHome(res.home);
       const storeCode = joinCode || res.public?.auction?.code || "";
       if (storeCode) {
-        sessionStorage.setItem("arcus-auth", JSON.stringify({ ...auth, code: storeCode, auctionId: opts.auctionId || res.public?.auction?.id || "" }));
+        sessionStorage.setItem(
+          "arcus-auth",
+          JSON.stringify({
+            ...auth,
+            code: storeCode,
+            auctionId: opts.auctionId || res.public?.auction?.id || ""
+          })
+        );
       }
-      const synced: any = await emit("sync-live", {
+      const synced: any = await emitRef.current("sync-live", {
         code: storeCode || undefined,
         auctionId: opts.auctionId || res.public?.auction?.id
       });
       const next = synced.public || res.public;
       if (!next?.auction) return null;
       setViewing(next.auction.id);
-      applyPublic(next);
+      applyPublicRef.current(next);
       return next;
     };
 
     const boot = () => {
       const auth = readAuth();
       if (!auth?.username) return;
-      emit("login", { username: auth.username, password: auth.password })
+      // Re-attach only when already viewing a desk (reconnect). Do not clear the desk.
+      const viewingIdNow = viewingRef.current;
+      emitRef.current("login", {
+        username: auth.username,
+        password: auth.password,
+        ...(viewingIdNow ? { auctionId: viewingIdNow } : {})
+      })
         .then(async (res: any) => {
           if (res.role !== "owner") {
-            router.replace(res.redirect || "/");
+            routerRef.current.replace(res.redirect || "/");
             return;
           }
           setTeamId(res.teamId);
           setTeamName(res.teamName);
           setHome(res.home || null);
 
-          // Already on a desk (e.g. socket reconnect) — stay on that auction only
           if (viewingRef.current) {
             const still = (res.home?.auctions || []).find((a: any) => a.id === viewingRef.current);
             if (still) {
@@ -171,10 +206,10 @@ export default function OwnerPage() {
             }
             setState(null);
             setViewing(null);
+            return;
           }
 
-          // Always land on owner home / chooser — never auto-enter a live or saved auction.
-          // Owners pick explicitly via Enter auction, View squad, or auction code.
+          // Fresh visit — stay on chooser (never auto-enter)
           sessionStorage.setItem(
             "arcus-auth",
             JSON.stringify({ ...auth, code: "", auctionId: "" })
@@ -182,7 +217,7 @@ export default function OwnerPage() {
           setState(null);
           setViewing(null);
         })
-        .catch(() => router.replace("/"));
+        .catch(() => routerRef.current.replace("/"));
     };
 
     socket.on("state", onState);
@@ -195,7 +230,8 @@ export default function OwnerPage() {
       socket.off("lot", onLot);
       socket.off("connect", boot);
     };
-  }, [socket, emit, router, applyPublic, setViewing]);
+    // Only rebind when the socket instance changes — avoid missing next-player events
+  }, [socket, setViewing]);
 
   const enterAuction = async (opts: { code?: string; auctionId?: string }) => {
     const saved = readAuth();

@@ -2,16 +2,28 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { maxBidFromBaseQuotas, teamLiveStats } from "../server/engine.mjs";
 
-test("user example: 100 − (2×10 + 4×2 + 4×5) = 52 Cr", () => {
-  // Values in lakhs (1 Cr = 100 L)
+test("reserves cheapest (empty-1) slots, not all remaining capacity", () => {
+  // Values in lakhs (1 Cr = 100 L). Start: 1×10 retained, caps 4/4/3.
+  // empty=10 → reserve 9 cheapest: 4×2 + 4×5 + 1×10 = 38 Cr → max 62 Cr
   const purseLeft = 10000;
   const baseSlots = [
     { basePrice: 200, owned: 0, cap: 4 },
     { basePrice: 500, owned: 0, cap: 4 },
     { basePrice: 1000, owned: 1, cap: 3 }
   ];
-  // need: 4×2 + 4×5 + 2×10 = 8+20+20 = 48 Cr → 4800 L; max = 5200 L = 52 Cr
-  assert.equal(maxBidFromBaseQuotas(purseLeft, baseSlots, 1, 11, 1000), 5200);
+  assert.equal(maxBidFromBaseQuotas(purseLeft, baseSlots, 1, 11, 1000), 6200);
+});
+
+test("RW live case: 34.9 − (3×2 + 2×5) = 18.9 Cr", () => {
+  // Royal Warriors: roster 5, empty 6, purse left 34.9 Cr
+  // capacity left 3×2 + 2×5 + 1×10 → reserve cheapest 5 = 16 Cr → max 18.9 Cr
+  const purseLeft = 3490;
+  const baseSlots = [
+    { basePrice: 200, owned: 1, cap: 4 },
+    { basePrice: 500, owned: 2, cap: 4 },
+    { basePrice: 1000, owned: 2, cap: 3 }
+  ];
+  assert.equal(maxBidFromBaseQuotas(purseLeft, baseSlots, 5, 11, 1000), 1890);
 });
 
 test("falls back to denom formula when no base caps", () => {
@@ -73,6 +85,7 @@ test("teamLiveStats uses base-quota max bid when caps configured", () => {
   const stats = teamLiveStats(store, auction, teamId);
   assert.equal(stats.purseLeft, 10000);
   assert.equal(stats.maxBidMode, "baseQuotas");
-  assert.equal(stats.maxBid, 5200);
+  // empty=10 → cheapest 9 of 4×2+4×5+2×10 = 38 Cr reserve → 62 Cr max
+  assert.equal(stats.maxBid, 6200);
   assert.equal(stats.atBaseLimit, false);
 });

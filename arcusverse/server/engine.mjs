@@ -46,10 +46,14 @@ export function nextMaxBid(purseLeft, rosterCount, maxSquad, denom) {
 }
 
 /**
- * Max bid with base-price squad quotas (user formula):
- * purseLeft - Σ(need[b] × b) for every capped base, where need = max(0, cap − owned).
- * Example: 100 − (2×10 + 4×2 + 4×5) = 52 when bidding on a 5 Cr player.
- * Last empty roster slot: no reserve — full remaining purse is available (same as nextMaxBid).
+ * Max bid with base-price squad caps (aligned with nextMaxBid):
+ * purseLeft − min cost to fill the other (empty − 1) roster slots, using the
+ * cheapest remaining capacity at each capped base (need = max(0, cap − owned)).
+ *
+ * Example (RW): purse 34.9 Cr, empty 6, capacity left 3×2 + 2×5 + 1×10 →
+ * reserve cheapest 5 = 3×2 + 2×5 = 16 Cr → max bid 18.9 Cr.
+ *
+ * Last empty roster slot: no reserve — full remaining purse (same as nextMaxBid).
  * Falls back to denom-based nextMaxBid when no base caps are configured.
  */
 export function maxBidFromBaseQuotas(purseLeft, baseSlots, rosterCount, maxSquad, fallbackDenom) {
@@ -64,19 +68,24 @@ export function maxBidFromBaseQuotas(purseLeft, baseSlots, rosterCount, maxSquad
   if (!slots.length) {
     return nextMaxBid(purseLeft, rosterCount, maxSquad, fallbackDenom);
   }
-  let reserve = 0;
-  let cappedNeed = 0;
+
+  // Multiset of remaining buyable slots at each base (caps are maxima, not minima).
+  const slotCosts = [];
   for (const b of slots) {
     const need = Math.max(0, Number(b.cap) - Number(b.owned || 0));
-    reserve += need * Number(b.basePrice);
-    cappedNeed += need;
+    const price = Number(b.basePrice);
+    for (let i = 0; i < need; i++) slotCosts.push(price);
   }
-  const uncovered = Math.max(0, empty - cappedNeed);
-  if (uncovered > 0) {
-    const bases = slots.map((s) => Number(s.basePrice)).filter((n) => Number.isFinite(n) && n > 0);
-    const minBase = bases.length ? Math.min(...bases) : Number(fallbackDenom) || 0;
-    reserve += uncovered * minBase;
-  }
+  const bases = slots.map((s) => Number(s.basePrice)).filter((n) => Number.isFinite(n) && n > 0);
+  const minBase = bases.length ? Math.min(...bases) : Number(fallbackDenom) || 0;
+
+  // Must leave enough for the other (empty - 1) seats after this purchase.
+  const toReserve = empty - 1;
+  while (slotCosts.length < toReserve) slotCosts.push(minBase);
+  slotCosts.sort((a, b) => a - b);
+  let reserve = 0;
+  for (let i = 0; i < toReserve; i++) reserve += slotCosts[i];
+
   return Math.max(0, Math.round((Number(purseLeft || 0) - reserve) * 10) / 10);
 }
 

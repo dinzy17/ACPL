@@ -1,0 +1,37 @@
+player_id,name,team_id,team_name,total_match,innings,total_wickets,balls,highest_wicket,economy,SR,maidens,avg,runs,bowling_style,overs,dot_balls
+2124876,Pushkar Sinha,3067980,STRIKERS,7,7,15,102,4,4.18,6.80,0,4.73,71,Right-arm fast,17.0,58
+4249093,Ravi,3067980,STRIKERS,7,7,14,127,4,4.49,9.07,1,6.79,95,Right-arm fast,21.1,72
+6406110,Ashish Pandit,3067979,PHOENIX,7,7,14,93,4,6.26,6.64,1,6.93,97,Right-arm medium,15.3,51
+10392885,Suchit Awalgaonkar,3067979,PHOENIX,7,7,12,125,4,4.51,10.42,0,7.83,94,Right-arm medium,20.5,71
+4746732,Aradhya Deshmukh,3067973,MAVERICKS,6,6,10,96,3,5.12,9.60,1,8.2,82,Right-arm Off Break,16.0,44
+8745736,Vishal,3067973,MAVERICKS,6,6,9,94,3,4.66,10.44,0,8.11,73,Right-arm medium,15.4,46
+10654570,Nilesh Changade,3067975,Royal Warriors,6,6,8,73,3,5.42,9.12,0,8.25,66,Right-arm medium,12.1,33
+3552794,Prasad Kunal Icon,3067980,STRIKERS,7,7,7,96,3,4.81,13.71,0,11,77,Right-arm medium,16.0,53
+10393119,Amit Deshmukh,3067979,PHOENIX,7,7,7,108,3,5.00,15.43,0,12.86,90,Right-arm medium,18.0,60
+16273443,Swapnil Kortikar Arcus,3067975,Royal Warriors,6,3,5,36,3,5.67,7.20,0,6.8,34,Right-arm Leg Break,6.0,17
+16132079,Gaurav Mishra,3067975,Royal Warriors,6,6,5,102,2,7.18,20.40,0,24.4,122,Right-arm medium,17.0,47
+10395215,Amol Khodke,3067973,MAVERICKS,6,6,5,66,2,8.00,13.20,0,17.6,88,Right-arm medium,11.0,29
+16132609,Nitesh Gondhalekar,3067975,Royal Warriors,6,5,4,48,1,5.62,12.00,0,11.25,45,Right-arm fast,8.0,19
+10392715,Rushikesh Saraf,3067975,Royal Warriors,6,2,1,18,1,6.00,18.00,0,18,18,Right-arm fast,3.0,10
+16199567,Amer Deep Gurung,3067973,MAVERICKS,6,2,1,12,1,8.00,12.00,0,16,16,Right-arm medium,2.0,3
+3683944,Prashant Puri,3067979,PHOENIX,7,2,0,12,0,11.50,0.00,0,0,23,Right-arm fast,2.0,5
+16132644,Swapnil Matte,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,None,0.0,0
+1365178,Omkar Sinha,3067973,MAVERICKS,6,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+16273268,Anagh Garg Rahul Arcus,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+16273260,Pranav Kamat Rahul Arcus,3067979,PHOENIX,7,0,,,,0.00,0.00,0,0,0,None,0.0,0
+16273252,Aaditya Patel Rahul Arcus,3067973,MAVERICKS,6,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+16199977,Shahaji Dhumal Rahul Arcus,3067979,PHOENIX,7,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+16199928,Pushkar Ramdasi,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,None,0.0,0
+16199608,Nikhil Dhundale,3067975,Royal Warriors,6,0,,,,0.00,0.00,0,0,0,-,0.0,0
+16180968,Sagar Jadhav,3067973,MAVERICKS,6,0,,,,0.00,0.00,0,0,0,Right-arm Leg Break,0.0,0
+16163736,Abhir Joshi,3067979,PHOENIX,7,0,,,,0.00,0.00,0,0,0,-,0.0,0
+16163644,Jayant Parkhi,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+16132743,Bobby Venugopal,3067979,PHOENIX,7,0,,,,0.00,0.00,0,0,0,-,0.0,0
+5231273,Mitesh Kumar,3067975,Royal Warriors,6,0,,,,0.00,0.00,0,0,0,-,0.0,0
+12299664,Sudarshan,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+11154306,Shravan Ahire,3067980,STRIKERS,7,0,,,,0.00,0.00,0,0,0,-,0.0,0
+10654571,Arun Raghuwanshi,3067979,PHOENIX,7,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+2290558,Rohit V Abbigeri,3067975,Royal Warriors,6,0,,,,0.00,0.00,0,0,0,Right-arm Off Break,0.0,0
+2798485,Dhiraj Deshmukh,3067973,MAVERICKS,6,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0
+3881514,Raghav,3067975,Royal Warriors,6,0,,,,0.00,0.00,0,0,0,Right-arm fast,0.0,0
+4814441,Ganesh Shaha,3067973,MAVERICKS,6,0,,,,0.00,0.00,0,0,0,Right-arm medium,0.0,0

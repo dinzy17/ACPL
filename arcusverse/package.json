@@ -1,0 +1,36 @@
+{
+  "name": "arcusverse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ArcusVerse — live cricket player auction for local tournaments on LAN",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "next build",
+    "start": "cross-env NODE_ENV=production node server.mjs",
+    "lint": "next lint",
+    "import:acpl": "node scripts/import-acpl.mjs",
+    "test": "node --test tests/acpl.test.mjs tests/registration.test.mjs tests/player-dedupe.test.mjs tests/public-port.test.mjs tests/auction-teams.test.mjs tests/auction-base-cap.test.mjs tests/youtube.test.mjs tests/auction-unsold-reset.test.mjs tests/max-bid-quotas.test.mjs"
+  },
+  "dependencies": {
+    "next": "^14.2.15",
+    "nodemailer": "^10.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "uuid": "^10.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.11",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.3"
+  }
+}

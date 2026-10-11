@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID, createHash } from "crypto";
 import { execFileSync } from "child_process";
+import { ensureCompletedAuctionTeamRosters } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -580,6 +581,8 @@ export function migrate(store) {
     });
     return { ...f, publicSlug: candidate, fields };
   });
+  // Completed auctions (e.g. ACPL-6) should surface bought players on Teams / tournament rosters
+  ensureCompletedAuctionTeamRosters(store);
   return store;
 }
 

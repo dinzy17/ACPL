@@ -122,7 +122,12 @@ export function TournamentsPanel({ admin, emit }: any) {
             <Button onClick={() => setForm({ ...form, teamIds: catTeams.map((t: any) => t.id) })}>Select all teams</Button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {catTeams.map((t: any) => (
+            {catTeams.map((t: any) => {
+              const rosterCount =
+                Array.isArray(t.playerIds) && t.playerIds.length
+                  ? t.playerIds.length
+                  : admin.players.filter((p: any) => p.teamId === t.id).length;
+              return (
               <button
                 key={t.id}
                 type="button"
@@ -133,10 +138,12 @@ export function TournamentsPanel({ admin, emit }: any) {
                   {t.name}
                 </p>
                 <p className="text-sm" style={{ color: "var(--muted)" }}>
-                  {t.sport || "Cricket"} · {form.teamIds.includes(t.id) ? "In this tournament" : "Tap to add"}
+                  {t.sport || "Cricket"} · {rosterCount} players ·{" "}
+                  {form.teamIds.includes(t.id) ? "In this tournament" : "Tap to add"}
                 </p>
               </button>
-            ))}
+              );
+            })}
             {!catTeams.length && (
               <p className="text-sm">
                 No {form.sport} / {catName} teams yet. Create them under Teams and tag the sport.
@@ -929,14 +936,20 @@ export function TeamsPanel({ admin, emit }: any) {
         </Button>
       </Card>
       <div className="grid gap-3 md:grid-cols-2">
-        {admin.teams.map((t: any) => (
+        {admin.teams.map((t: any) => {
+          const rosterIds =
+            Array.isArray(t.playerIds) && t.playerIds.length
+              ? t.playerIds
+              : admin.players.filter((p: any) => p.teamId === t.id).map((p: any) => p.id);
+          return (
           <Card key={t.id} className="flex items-center justify-between gap-3">
             <Link href={`/admin/teams/${t.id}`} className="min-w-0 flex-1 text-left">
               <h3 className="font-display text-3xl" style={{ color: t.color }}>
                 {t.name}
               </h3>
               <p className="text-sm">
-                {t.sport || "Cricket"} · {admin.categories.find((c: any) => c.id === t.categoryId)?.name} · open roster →
+                {t.sport || "Cricket"} · {admin.categories.find((c: any) => c.id === t.categoryId)?.name} ·{" "}
+                {rosterIds.length} players · open roster →
               </p>
             </Link>
             <div className="flex shrink-0 flex-wrap gap-2">
@@ -946,9 +959,7 @@ export function TeamsPanel({ admin, emit }: any) {
                     ...blank,
                     ...t,
                     sport: t.sport || "Cricket",
-                    playerIds: Array.isArray(t.playerIds)
-                      ? t.playerIds
-                      : admin.players.filter((p: any) => p.teamId === t.id && p.assignment === "team").map((p: any) => p.id)
+                    playerIds: rosterIds
                   })
                 }
               >
@@ -959,7 +970,8 @@ export function TeamsPanel({ admin, emit }: any) {
               </Button>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

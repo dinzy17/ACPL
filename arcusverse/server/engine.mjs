@@ -124,6 +124,45 @@ export function teamRosterRows(store, auction, teamId) {
   return [...retained, ...sold];
 }
 
+/** Keep team.playerIds in sync with auction purchases + retentions (additive). */
+export function syncTeamRostersFromAuction(store, auction) {
+  if (!auction) return;
+  for (const teamId of auctionTeamIds(store, auction)) {
+    const team = store.teams.find((t) => t.id === teamId);
+    if (!team) continue;
+    const ids = new Set(Array.isArray(team.playerIds) ? team.playerIds : []);
+    for (const r of team.retentions || []) {
+      if (r?.playerId) ids.add(r.playerId);
+    }
+    for (const s of auction.live?.sold || []) {
+      if (s.teamId !== teamId || !s.playerId) continue;
+      ids.add(s.playerId);
+      const p = store.players.find((x) => x.id === s.playerId);
+      if (p) p.teamId = teamId;
+    }
+    team.playerIds = [...ids];
+  }
+}
+
+/**
+ * After a completed auction, team admin/tournament views read team.playerIds.
+ * Sync sold (+ retention) players onto those rosters without touching other config.
+ */
+export function ensureCompletedAuctionTeamRosters(store) {
+  for (const auction of store.auctions || []) {
+    if (auction.status !== "completed" || !auction.live?.sold?.length) continue;
+    syncTeamRostersFromAuction(store, auction);
+  }
+}
+
+function unlinkPlayerFromTeamRoster(store, teamId, playerId) {
+  const team = store.teams.find((t) => t.id === teamId);
+  if (!team || !Array.isArray(team.playerIds)) return;
+  // Do not drop retained players from the roster list
+  if ((team.retentions || []).some((r) => r.playerId === playerId)) return;
+  team.playerIds = team.playerIds.filter((id) => id !== playerId);
+}
+
 export function teamLiveStats(store, auction, teamId) {
   const live = auction.live;
   const roster = teamRosterRows(store, auction, teamId);
@@ -827,6 +866,7 @@ export function endAuction(store, auctionId) {
   auction.live.currentPlayerId = null;
   auction.live.timerEndsAt = null;
   auction.live.endedAt = Date.now();
+  syncTeamRostersFromAuction(store, auction);
   bumpLive(auction.live);
   return auction;
 }
@@ -914,6 +954,7 @@ export function undoLast(store, auctionId) {
     live.sold = live.sold.filter((s) => !(s.playerId === last.playerId && s.at === last.at));
     const player = store.players.find((p) => p.id === last.playerId);
     if (player) player.teamId = null;
+    unlinkPlayerFromTeamRoster(store, last.teamId, last.playerId);
     live.remainingPlayerIds.unshift(last.playerId);
     live.currentPlayerId = last.playerId;
     live.currentBid = last.soldPrice;
